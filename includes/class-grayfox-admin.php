@@ -679,25 +679,16 @@ class GrayFox_Admin {
 			wp_send_json_error( __( 'Site generation is already running. Please wait.', 'grayfox' ) );
 		}
 
-		global $wpdb;
-		$kb_table = GrayFox_DB::get_table( 'knowledge_base' );
-
-		$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.NoCaching
-			"SELECT topic_index FROM `{$kb_table}` WHERE status = 'active' AND topic_index IS NOT NULL" // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
-		);
-
-		if ( empty( $rows ) ) {
+		// Read the full KB content — not just topic keywords.
+		// get_consolidated_knowledge() returns actual content_json so the LLM
+		// can understand what the business is before designing the site.
+		$knowledge_json = GrayFox_RAG::get_consolidated_knowledge();
+		if ( empty( $knowledge_json ) ) {
 			wp_send_json_error( __( 'No active knowledge base documents found. Please add and process documents first.', 'grayfox' ) );
 		}
-
-		$topics = array();
-		foreach ( $rows as $row ) {
-			$t = json_decode( $row->topic_index, true );
-			if ( is_array( $t ) ) {
-				$topics = array_merge( $topics, $t );
-			}
-		}
-		$topics = array_unique( $topics );
+		// Cap at 15k characters — enough to understand the business without burning
+		// excessive tokens on a single sitemap-generation call.
+		$knowledge_excerpt = mb_substr( $knowledge_json, 0, 15000 );
 
 		$provider = get_option( 'grayfox_llm_provider', 'openai' );
 		$enc_key  = get_option( 'grayfox_llm_api_key', '' );
@@ -708,23 +699,32 @@ class GrayFox_Admin {
 			wp_send_json_error( __( 'LLM not configured.', 'grayfox' ) );
 		}
 
-		$topic_list = implode( ', ', array_slice( $topics, 0, 100 ) );
-		$messages   = array(
+		$messages = array(
+			array(
+				'role'    => 'system',
+				'content' => 'You are a professional web architect. Design a website structure for a real business based solely on its knowledge base. Every page you create must map to actual content in the KB. Never invent pages for topics with insufficient information.',
+			),
 			array(
 				'role'    => 'user',
 				'content' => sprintf(
-					'Based on these topics from a business knowledge base, suggest a logical page hierarchy for a website. Return JSON only. Format: {"pages":[{"title":"Home","children":[{"title":"About","children":[]}]}]}. Topics: %s',
-					$topic_list
+					"Read this business knowledge base and design a website for it.\n\nKnowledge base:\n%s\n\nReturn JSON only — no markdown, no explanation:\n{\n  \"business_profile\": {\n    \"name\": \"exact company name from KB\",\n    \"description\": \"1-2 sentence summary of what the company does\",\n    \"industry\": \"industry type\",\n    \"key_products\": [\"product 1\", \"product 2\"],\n    \"target_customers\": \"who they serve\"\n  },\n  \"pages\": [\n    {\n      \"title\": \"Page Title\",\n      \"content_brief\": \"Specific description of what this page covers — reference real product names, services, and features from the KB\",\n      \"children\": [\n        {\n          \"title\": \"Child Page Title\",\n          \"content_brief\": \"What this child page covers based on KB content\",\n          \"children\": []\n        }\n      ]\n    }\n  ]\n}\n\nRules:\n- Maximum 3 levels of nesting\n- Maximum 12 pages total across all levels\n- Each page must map to substantial KB content — skip topics with thin coverage\n- content_brief must be specific to this business: use real company name, real product names, real features\n- Do not create separate pages for minor sub-topics that belong as sections within a parent page\n- Consolidate related topics into single pages rather than creating many shallow pages",
+					$knowledge_excerpt
 				),
 			),
 		);
 
-		$llm       = new GrayFox_LLM();
-		$raw       = $llm->request_json( $provider, $api_key, $model, $messages, 0.3 );
-		$parsed    = json_decode( $raw, true );
+		$llm    = new GrayFox_LLM();
+		$raw    = $llm->request_json( $provider, $api_key, $model, $messages, 0.3 );
+		$parsed = json_decode( $raw, true );
 
 		if ( ! is_array( $parsed ) || empty( $parsed['pages'] ) ) {
 			wp_send_json_error( __( 'Failed to generate sitemap. Please try again.', 'grayfox' ) );
+		}
+
+		// Persist the business profile so page generation can reference it without
+		// re-reading the entire KB on every single page.
+		if ( ! empty( $parsed['business_profile'] ) && is_array( $parsed['business_profile'] ) ) {
+			set_transient( GrayFox_SiteBuilder::BUSINESS_PROFILE_TRANSIENT, $parsed['business_profile'], DAY_IN_SECONDS );
 		}
 
 		wp_send_json_success( array(
@@ -766,7 +766,10 @@ class GrayFox_Admin {
 	 */
 	private function sanitize_sitemap_pages( array $pages ): array {
 		foreach ( $pages as &$page ) {
-			$page['title'] = sanitize_text_field( $page['title'] ?? '' );
+			$page['title']         = sanitize_text_field( $page['title'] ?? '' );
+			// Preserve the content brief so page generation can use it as a
+			// targeted RAG query instead of falling back to the generic title.
+			$page['content_brief'] = sanitize_textarea_field( $page['content_brief'] ?? '' );
 			if ( ! empty( $page['children'] ) && is_array( $page['children'] ) ) {
 				$page['children'] = $this->sanitize_sitemap_pages( $page['children'] );
 			}

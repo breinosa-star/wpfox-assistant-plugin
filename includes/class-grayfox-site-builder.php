@@ -32,6 +32,9 @@ class GrayFox_SiteBuilder {
 	/** WP option that stores the chosen build format. */
 	const FORMAT_OPTION = 'grayfox_site_build_format';
 
+	/** Transient key for the business profile extracted during sitemap generation. */
+	const BUSINESS_PROFILE_TRANSIENT = 'grayfox_site_business_profile';
+
 	/** WP option that stores the encrypted Unsplash API key. */
 	const UNSPLASH_OPTION = 'grayfox_unsplash_api_key';
 
@@ -204,21 +207,17 @@ class GrayFox_SiteBuilder {
 		);
 
 		try {
-			// 1. Retrieve relevant KB context.
-			global $wpdb;
-			$kb_table = GrayFox_DB::get_table( 'knowledge_base' );
-			$all_rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.NoCaching
-				"SELECT id, source_name, content_json, topic_index FROM `{$kb_table}` WHERE status = 'active'", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
-				ARRAY_A
-			);
-			$relevant  = GrayFox_RAG::retrieve_relevant_sections( $title, $all_rows );
-			$kb_ctx    = '';
-			foreach ( $relevant as $row ) {
-				$kb_ctx .= ( $row['source_name'] ?? '' ) . ': ' . ( $row['content_json'] ?? '' ) . "\n\n";
-			}
-			$kb_ctx = mb_substr( $kb_ctx, 0, 8000 );
-
-			// 2. Call LLM to generate page blocks.
+			// 1. LLM-driven KB gathering — let the LLM decide what to search for
+			// rather than pre-fetching via keyword scoring.
+			//
+			// The old approach used retrieve_relevant_sections($title, $rows) which
+			// queried the KB by page title ("Home", "About"). Generic titles produced
+			// poor matches and pages got empty or irrelevant context.
+			//
+			// The new approach mirrors the chat assistant: the LLM receives a
+			// search_knowledge_base tool and makes targeted queries itself (e.g.
+			// "Gray Fox pricing plans limits" instead of just "Plans & Pricing").
+			// It can make up to 3 searches to gather everything it needs.
 			$provider = get_option( 'grayfox_llm_provider', 'openai' );
 			$enc_key  = get_option( 'grayfox_llm_api_key', '' );
 			$api_key  = grayfox_decrypt( $enc_key );
@@ -228,15 +227,111 @@ class GrayFox_SiteBuilder {
 				return $result;
 			}
 
-			$llm      = new GrayFox_LLM();
-			$messages = array(
+			$profile       = get_transient( self::BUSINESS_PROFILE_TRANSIENT );
+			$company_name  = ( is_array( $profile ) && ! empty( $profile['name'] ) )
+				? $profile['name']
+				: 'the company';
+			$content_brief = ! empty( $page_def['content_brief'] ) ? $page_def['content_brief'] : $title;
+
+			// Tool definition: only search_knowledge_base — no email capture or
+			// other chat-specific tools needed here.
+			$search_tool = array(
+				array(
+					'type'     => 'function',
+					'function' => array(
+						'name'        => 'search_knowledge_base',
+						'description' => 'Search the business knowledge base for specific information needed to write this web page. Make targeted, specific queries to retrieve the right content.',
+						'parameters'  => array(
+							'type'       => 'object',
+							'properties' => array(
+								'query' => array(
+									'type'        => 'string',
+									'description' => 'Specific search query (e.g. "pricing plans Trial Starter limits" or "company address contact details").',
+								),
+							),
+							'required'   => array( 'query' ),
+						),
+					),
+				),
+			);
+
+			$llm            = new GrayFox_LLM();
+			$gather_msgs    = array(
+				array(
+					'role'    => 'system',
+					'content' => sprintf(
+						'You are gathering information to write the "%s" page for the %s website. Use the search_knowledge_base tool to look up specific information you need. Make 1-3 targeted searches. When you have enough information, respond with the plain text "DONE".',
+						$title,
+						$company_name
+					),
+				),
 				array(
 					'role'    => 'user',
 					'content' => sprintf(
-						'Generate content for a WordPress page titled "%s". Use this business knowledge:\n\n%s\n\nReturn JSON only: {"title":"%s","blocks":[{"type":"heading","level":2,"content":"..."},{"type":"paragraph","content":"..."},{"type":"image","keyword":"..."}]}. Include 3-6 blocks relevant to the page title. Use only types: heading, paragraph, image.',
+						'Search the knowledge base to collect all content needed for this page. Page: "%s". Purpose: %s',
 						$title,
+						$content_brief
+					),
+				),
+			);
+
+			$kb_ctx         = '';
+			$max_searches   = 3;
+
+			for ( $i = 0; $i < $max_searches; $i++ ) {
+				$gather = $llm->request_with_tools( $provider, $api_key, $model, $gather_msgs, $search_tool );
+
+				if ( 'complete' === $gather['status'] ) {
+					break;
+				}
+
+				if ( ! empty( $gather['assistant_message'] ) ) {
+					$gather_msgs[] = $gather['assistant_message'];
+				}
+
+				foreach ( $gather['tool_calls'] as $call ) {
+					if ( 'search_knowledge_base' === $call['name'] ) {
+						$query      = sanitize_text_field( $call['args']['query'] ?? '' );
+						$kb_result  = GrayFox_RAG::get_consolidated_knowledge( $query );
+						$kb_ctx    .= $kb_result . "\n\n";
+
+						$gather_msgs[] = array(
+							'role'         => 'tool',
+							'tool_call_id' => $call['id'],
+							'name'         => 'search_knowledge_base',
+							'content'      => ! empty( $kb_result )
+								? $kb_result
+								: wp_json_encode( array( 'result' => 'No relevant information found.' ) ),
+						);
+					}
+				}
+			}
+
+			$kb_ctx = mb_substr( trim( $kb_ctx ), 0, 12000 );
+
+			// If the LLM couldn't find any KB content, skip this page — do not
+			// generate a page with no real information.
+			if ( empty( $kb_ctx ) ) {
+				$result['status'] = 'skipped';
+				return $result;
+			}
+
+			// 2. Generate page blocks from the gathered KB content.
+			$messages = array(
+				array(
+					'role'    => 'system',
+					'content' => 'You write web page content for real businesses. Use only information present in the knowledge base content provided. Write in a professional, confident tone — this is a published website. Never reference the knowledge base, never explain what information is missing, never use placeholder language. If you cannot substantiate a section with real KB content, omit that section entirely. The reader should never know what you did or did not have access to.',
+				),
+				array(
+					'role'    => 'user',
+					'content' => sprintf(
+						"Write content for a WordPress page.\n\nCompany: %s\nPage: \"%s\"\nPage purpose: %s\n\nKnowledge base content:\n%s\n\nReturn JSON only — no markdown, no explanation:\n{\"title\":\"%s\",\"blocks\":[{\"type\":\"heading\",\"level\":2,\"content\":\"...\"},{\"type\":\"paragraph\",\"content\":\"...\"},{\"type\":\"image\",\"keyword\":\"...\"}]}\n\nRules:\n- 3 to 6 blocks total\n- Allowed types: heading, paragraph, image\n- Use the actual company name (%s)\n- Every sentence must come from the knowledge base content above\n- Do not invent features, prices, or facts not present in the KB",
+						$company_name,
+						$title,
+						$content_brief,
 						$kb_ctx,
-						$title
+						$title,
+						$company_name
 					),
 				),
 			);
