@@ -1,0 +1,12 @@
+{
+    "name": "grayfox/grayfox-plugin",
+    "description": "GrayFox WordPress Plugin",
+    "type": "wordpress-plugin",
+    "require": {
+        "smalot/pdfparser": "^2.0"
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "vendor-dir": "vendor"
+    }
+}

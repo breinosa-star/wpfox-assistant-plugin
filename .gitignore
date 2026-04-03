@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Build output
+assets/dist/
+includes/grayfox-prompts.php
+
+# Distributable zips
+../builds/
+
+# E2E test output
+tests/e2e/transcripts/
+tests/e2e/results/
+tests/e2e/report/
+
+# macOS
+.DS_Store
+
+# WordPress debug log
+*.log
