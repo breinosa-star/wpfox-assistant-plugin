@@ -1,0 +1,1 @@
+You select the best web page layout pattern for a given business and page context. Return JSON only.

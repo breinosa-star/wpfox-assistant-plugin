@@ -56,6 +56,7 @@ class GrayFox_Plugin {
 
 		require_once GRAYFOX_PATH . 'includes/class-grayfox-drive.php';
 		require_once GRAYFOX_PATH . 'includes/class-grayfox-site-builder.php';
+		require_once GRAYFOX_PATH . 'includes/class-grayfox-audit.php';
 
 		$db        = new GrayFox_DB();
 		$settings  = new GrayFox_Settings();
@@ -71,6 +72,7 @@ class GrayFox_Plugin {
 		$sheets    = GrayFox_Sheets::get_instance();
 
 		$site_builder = GrayFox_SiteBuilder::get_instance();
+		$audit        = GrayFox_Audit::get_instance();
 
 		$settings->register( $this->loader );
 		$license->register( $this->loader );
@@ -84,6 +86,7 @@ class GrayFox_Plugin {
 		$drive->register( $this->loader );
 		$sheets->register( $this->loader );
 		$site_builder->register( $this->loader );
+		$audit->register( $this->loader );
 
 		$this->loader->run();
 	}

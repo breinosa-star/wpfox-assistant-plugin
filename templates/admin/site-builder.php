@@ -17,10 +17,17 @@ $saved_sitemap = get_option( GrayFox_SiteBuilder::SITEMAP_OPTION, array() );
 $build_status  = get_option( GrayFox_SiteBuilder::BUILD_OPTION, array( 'status' => 'idle' ) );
 $format        = get_option( GrayFox_SiteBuilder::FORMAT_OPTION, 'blocks' );
 
+// All registered nav menu locations for Step 6 (theme may not name footer menus "footer").
+$footer_locations = get_registered_nav_menus();
+$footer_disabled  = empty( $footer_locations );
+
+// Tier flag for Step 7 SEO section.
+$is_pro = GrayFox_License::get_verified_tier() !== 'free';
+
 // If a build has already completed show step 5 directly.
 $initial_step  = ( 'complete' === ( $build_status['status'] ?? '' ) ) ? 5 : 1;
 ?>
-<div class="wrap grayfox-admin-wrap">
+<div class="wrap grayfox-admin-wrap" data-initial-step="<?php echo esc_attr( $initial_step ); ?>">
 	<h1><?php esc_html_e( 'Build Site from Knowledge Base', 'grayfox' ); ?></h1>
 	<p class="description">
 		<?php esc_html_e( 'GrayFox will read your knowledge base and generate a full page structure for your WordPress site. Pages are created as drafts — you can edit or discard them at any time.', 'grayfox' ); ?>
@@ -35,11 +42,18 @@ $initial_step  = ( 'complete' === ( $build_status['status'] ?? '' ) ) ? 5 : 1;
 			3 => __( '3. Format', 'grayfox' ),
 			4 => __( '4. Generate', 'grayfox' ),
 			5 => __( '5. Results', 'grayfox' ),
+			6 => __( '6. Footer', 'grayfox' ),
+			7 => __( '7. Audit', 'grayfox' ),
 		);
 		foreach ( $steps as $n => $label ) :
+			$extra_attrs = '';
+			if ( 6 === $n && $footer_disabled ) {
+				$extra_attrs = ' data-footer-disabled="1"';
+			}
 		?>
 			<div class="grayfox-step-tab"
 				 data-step="<?php echo esc_attr( $n ); ?>"
+				 <?php echo $extra_attrs; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 				 style="padding:8px 20px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;font-weight:600;color:#555;">
 				<?php echo esc_html( $label ); ?>
 			</div>
@@ -127,19 +141,25 @@ $initial_step  = ( 'complete' === ( $build_status['status'] ?? '' ) ) ? 5 : 1;
 			<div id="grayfox-estimate-result" style="margin-top:8px;font-size:13px;"></div>
 		</div>
 
-		<details style="margin-bottom:16px;">
-			<summary style="cursor:pointer;font-weight:600;"><?php esc_html_e( 'Unsplash API Key (optional — for featured images)', 'grayfox' ); ?></summary>
+		<?php $unsplash_saved = ! empty( get_option( GrayFox_SiteBuilder::UNSPLASH_OPTION, '' ) ); ?>
+		<details style="margin-bottom:16px;"<?php echo $unsplash_saved ? '' : ' open'; ?>>
+			<summary style="cursor:pointer;font-weight:600;">
+				<?php esc_html_e( 'Unsplash API Key (optional — for stock photos)', 'grayfox' ); ?>
+				<?php if ( $unsplash_saved ) : ?>
+					<span style="margin-left:8px;color:#46b450;font-weight:normal;">&#10003; <?php esc_html_e( 'Key saved', 'grayfox' ); ?></span>
+				<?php endif; ?>
+			</summary>
 			<div style="margin-top:10px;">
 				<input type="password"
 					   id="grayfox-unsplash-key"
 					   class="regular-text"
-					   placeholder="<?php esc_attr_e( 'Enter Unsplash Access Key', 'grayfox' ); ?>" />
+					   placeholder="<?php echo $unsplash_saved ? esc_attr__( 'Enter new key to replace saved key', 'grayfox' ) : esc_attr__( 'Enter Unsplash Access Key', 'grayfox' ); ?>" />
 				<button type="button" id="grayfox-save-unsplash" class="button" style="margin-left:8px;">
 					<?php esc_html_e( 'Save Key', 'grayfox' ); ?>
 				</button>
 				<span id="grayfox-unsplash-status" style="margin-left:8px;"></span>
 				<p class="description" style="margin-top:6px;">
-					<?php esc_html_e( 'Your key is stored encrypted. Leave blank to skip featured images. Get a free key at unsplash.com/developers.', 'grayfox' ); ?>
+					<?php esc_html_e( 'Stored encrypted. If no key is set, images are generated via DALL-E. Get a free key at unsplash.com/developers.', 'grayfox' ); ?>
 				</p>
 			</div>
 		</details>
@@ -166,28 +186,98 @@ $initial_step  = ( 'complete' === ( $build_status['status'] ?? '' ) ) ? 5 : 1;
 				<p>
 					<?php
 					/* translators: %d: number of pages created */
-					printf( esc_html__( '%d page(s) created as drafts.', 'grayfox' ), count( $build_status['pages'] ?? array() ) );
+					printf( esc_html__( '%d page(s) created as drafts. Review each page below and request revisions as needed.', 'grayfox' ), count( $build_status['pages'] ?? array() ) );
 					?>
 				</p>
 			</div>
 
-			<ul id="grayfox-results-list" style="margin-top:12px;">
+			<table id="grayfox-results-table" class="widefat striped" style="margin-top:16px;">
+				<thead>
+					<tr>
+						<th style="width:22%;"><?php esc_html_e( 'Page', 'grayfox' ); ?></th>
+						<th style="width:12%;text-align:center;"><?php esc_html_e( 'Copy', 'grayfox' ); ?></th>
+						<th style="width:12%;text-align:center;"><?php esc_html_e( 'Arrangement', 'grayfox' ); ?></th>
+						<th style="width:12%;text-align:center;"><?php esc_html_e( 'Images', 'grayfox' ); ?></th>
+						<th style="width:18%;"><?php esc_html_e( 'Action', 'grayfox' ); ?></th>
+						<th style="width:14%;"><?php esc_html_e( 'Additional context', 'grayfox' ); ?></th>
+						<th style="width:10%;text-align:center;"><?php esc_html_e( 'Status', 'grayfox' ); ?></th>
+					</tr>
+				</thead>
+				<tbody>
 				<?php foreach ( $build_status['pages'] ?? array() as $page ) :
-					if ( empty( $page['post_id'] ) ) continue;
+					if ( empty( $page['post_id'] ) || 'complete' !== $page['status'] ) continue;
+					$post_id = (int) $page['post_id'];
+					$rev_status = esc_attr( $page['revision_status'] ?? '' );
 				?>
-					<li>
-						<a href="<?php echo esc_url( get_edit_post_link( $page['post_id'] ) ); ?>" target="_blank">
-							<?php echo esc_html( $page['title'] ?? "Page #{$page['post_id']}" ); ?>
-						</a>
-						<span style="color:#888;margin-left:6px;">
-							(<?php echo 'complete' === $page['status'] ? esc_html__( 'Created', 'grayfox' ) : esc_html__( 'Failed', 'grayfox' ); ?>)
-						</span>
-					</li>
+					<tr data-post-id="<?php echo $post_id; ?>">
+						<td>
+							<a href="<?php echo esc_url( get_edit_post_link( $post_id ) ); ?>" target="_blank">
+								<?php echo esc_html( $page['title'] ?? "Page #{$post_id}" ); ?>
+							</a>
+							&nbsp;
+							<a href="<?php echo esc_url( get_permalink( $post_id ) ); ?>" target="_blank" style="color:#888;font-size:12px;">&#8599;</a>
+						</td>
+						<td style="text-align:center;color:#46b450;font-size:16px;">&#10003;</td>
+						<td style="text-align:center;color:#46b450;font-size:16px;">&#10003;</td>
+						<td style="text-align:center;color:#46b450;font-size:16px;">&#10003;</td>
+						<td>
+							<select class="grayfox-revision-action" style="width:100%;">
+								<option value=""><?php esc_html_e( '— No change —', 'grayfox' ); ?></option>
+								<optgroup label="<?php esc_attr_e( 'Revise copy', 'grayfox' ); ?>">
+									<option value="revise_copy|shorter"><?php esc_html_e( 'Shorter and punchier', 'grayfox' ); ?></option>
+									<option value="revise_copy|conversational"><?php esc_html_e( 'More conversational tone', 'grayfox' ); ?></option>
+									<option value="revise_copy|detailed"><?php esc_html_e( 'More detailed and specific', 'grayfox' ); ?></option>
+									<option value="revise_copy|benefits"><?php esc_html_e( 'Focus on benefits, not features', 'grayfox' ); ?></option>
+									<option value="revise_copy|authoritative"><?php esc_html_e( 'Sound more authoritative', 'grayfox' ); ?></option>
+								</optgroup>
+								<optgroup label="<?php esc_attr_e( 'Re-arrange layout', 'grayfox' ); ?>">
+									<option value="rearrange|different"><?php esc_html_e( 'Try a completely different layout', 'grayfox' ); ?></option>
+									<option value="rearrange|visual"><?php esc_html_e( 'Add more visual variety', 'grayfox' ); ?></option>
+									<option value="rearrange|simpler"><?php esc_html_e( 'Simpler, more focused structure', 'grayfox' ); ?></option>
+									<option value="rearrange|dense"><?php esc_html_e( 'More information-dense (tables, specs)', 'grayfox' ); ?></option>
+								</optgroup>
+								<optgroup label="<?php esc_attr_e( 'New images', 'grayfox' ); ?>">
+									<option value="new_images|fresh"><?php esc_html_e( 'Replace all images', 'grayfox' ); ?></option>
+								</optgroup>
+							</select>
+						</td>
+						<td>
+							<input type="text"
+								   class="grayfox-revision-hint"
+								   maxlength="50"
+								   placeholder="<?php esc_attr_e( 'Optional hint…', 'grayfox' ); ?>"
+								   style="width:100%;display:none;" />
+						</td>
+						<td style="text-align:center;">
+							<span class="grayfox-revision-status" data-status="<?php echo $rev_status; ?>">
+								<?php
+								$labels = array(
+									'pending'    => '<span style="color:#996800;">&#9679; Queued</span>',
+									'processing' => '<span style="color:#2271b1;">&#8635; Processing</span>',
+									'done'       => '<span style="color:#46b450;">&#10003; Done</span>',
+									'error'      => '<span style="color:#d63638;">&#10007; Error</span>',
+								);
+								echo isset( $labels[ $rev_status ] ) ? wp_kses_post( $labels[ $rev_status ] ) : '&mdash;'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+								?>
+							</span>
+						</td>
+					</tr>
 				<?php endforeach; ?>
-			</ul>
+				</tbody>
+			</table>
+
+			<div style="margin-top:16px;display:flex;align-items:center;gap:16px;">
+				<button type="button" id="grayfox-submit-revisions" class="button button-primary" disabled>
+					<?php esc_html_e( 'Submit revision requests', 'grayfox' ); ?>
+				</button>
+				<span id="grayfox-revisions-status" style="font-style:italic;color:#555;"></span>
+			</div>
+
+		<?php else : ?>
+			<p><?php esc_html_e( 'No completed build found. Generate the site in Step 4 first.', 'grayfox' ); ?></p>
 		<?php endif; ?>
 
-		<div style="margin-top:24px;padding-top:16px;border-top:1px solid #ddd;">
+		<div style="margin-top:32px;padding-top:16px;border-top:1px solid #ddd;">
 			<h3 style="color:#d63638;"><?php esc_html_e( 'Remove Generated Pages', 'grayfox' ); ?></h3>
 			<p><?php esc_html_e( 'This will move all GrayFox-generated pages to the Trash. Non-generated pages are not affected.', 'grayfox' ); ?></p>
 			<button type="button" id="grayfox-undo-build" class="button button-secondary" style="border-color:#d63638;color:#d63638;">
@@ -196,4 +286,122 @@ $initial_step  = ( 'complete' === ( $build_status['status'] ?? '' ) ) ? 5 : 1;
 			<span id="grayfox-undo-status" style="margin-left:8px;"></span>
 		</div>
 	</div>
+
+	<!-- ===== Step 6: Footer Configuration ===== -->
+	<div class="grayfox-step" data-step="6" style="display:none;">
+		<h2><?php esc_html_e( 'Step 6: Footer Configuration', 'grayfox' ); ?></h2>
+
+		<?php if ( $footer_disabled ) : ?>
+			<div class="notice notice-info inline" style="padding:8px 12px;">
+				<p><?php esc_html_e( 'No footer menu locations are registered by the active theme. Footer configuration is unavailable — the theme controls footer content.', 'grayfox' ); ?></p>
+			</div>
+		<?php else : ?>
+			<p><?php esc_html_e( 'Add, remove, or reorder links in your navigation menus. Generated pages are pre-populated in footer-type locations. Use the dropdown to add any page.', 'grayfox' ); ?></p>
+			<div id="grayfox-footer-loading" style="color:#555;font-style:italic;"><?php esc_html_e( 'Loading footer configuration…', 'grayfox' ); ?></div>
+			<div id="grayfox-footer-columns" style="display:none;margin-top:16px;gap:24px;flex-wrap:wrap;"></div>
+			<p style="margin-top:16px;">
+				<button type="button" id="grayfox-save-footer" class="button button-primary" style="display:none;">
+					<?php esc_html_e( 'Save Footer', 'grayfox' ); ?>
+				</button>
+				<span id="grayfox-footer-status" style="margin-left:12px;font-style:italic;"></span>
+			</p>
+		<?php endif; ?>
+	</div>
+
+	<!-- ===== Step 7: Site Audit ===== -->
+	<div class="grayfox-step" data-step="7" style="display:none;">
+		<h2><?php esc_html_e( 'Step 7: Site Audit', 'grayfox' ); ?></h2>
+		<p><?php esc_html_e( 'Scan all generated pages for issues. Each section can be fixed independently.', 'grayfox' ); ?></p>
+
+		<div style="margin-bottom:20px;display:flex;align-items:center;gap:12px;">
+			<button type="button" id="grayfox-run-audit" class="button button-primary">
+				<?php esc_html_e( 'Run All Scans', 'grayfox' ); ?>
+			</button>
+			<span id="grayfox-audit-status" style="font-style:italic;color:#555;"></span>
+		</div>
+
+		<?php
+		$audit_sections = array(
+			'accessibility'   => array(
+				'label'   => __( 'Accessibility (ADA/WCAG)', 'grayfox' ),
+				'btn'     => __( 'Fix Issues', 'grayfox' ),
+				'has_fix' => true,
+			),
+			'broken_links'    => array(
+				'label'   => __( 'Broken / Empty Links', 'grayfox' ),
+				'btn'     => __( 'Fix', 'grayfox' ),
+				'has_fix' => true,
+			),
+			'content_quality' => array(
+				'label'   => __( 'Content Quality', 'grayfox' ),
+				'btn'     => __( 'Fix &amp; Publish', 'grayfox' ),
+				'has_fix' => true,
+			),
+			'wp_health'       => array(
+				'label'   => __( 'WordPress Health', 'grayfox' ),
+				'btn'     => __( 'Fix', 'grayfox' ),
+				'has_fix' => true,
+			),
+			'seo'             => array(
+				'label'   => __( 'SEO Basics', 'grayfox' ),
+				'btn'     => '',
+				'has_fix' => false,
+			),
+		);
+		foreach ( $audit_sections as $section_key => $section ) :
+		?>
+		<div class="grayfox-audit-section" data-section="<?php echo esc_attr( $section_key ); ?>"
+			 style="border:1px solid #ddd;border-radius:4px;margin-bottom:12px;">
+			<div class="grayfox-audit-section-header"
+				 style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;cursor:pointer;background:#f9f9f9;">
+				<strong><?php echo wp_kses_post( $section['label'] ); ?></strong>
+				<span class="grayfox-audit-badge" data-status="idle"
+					  style="font-size:12px;padding:2px 8px;border-radius:10px;background:#ddd;color:#555;">
+					<?php esc_html_e( 'Not scanned', 'grayfox' ); ?>
+				</span>
+			</div>
+			<div class="grayfox-audit-section-body" style="display:none;padding:12px 16px;">
+				<table class="wp-list-table widefat striped grayfox-audit-table" style="margin-bottom:12px;">
+					<thead>
+						<tr>
+							<th style="width:25%;"><?php esc_html_e( 'Page', 'grayfox' ); ?></th>
+							<th><?php esc_html_e( 'Issue', 'grayfox' ); ?></th>
+							<th style="width:12%;text-align:center;"><?php esc_html_e( 'Severity', 'grayfox' ); ?></th>
+						</tr>
+					</thead>
+					<tbody></tbody>
+				</table>
+
+				<?php if ( $section['has_fix'] ) : ?>
+					<button type="button" class="grayfox-fix-section button button-primary"
+							data-section="<?php echo esc_attr( $section_key ); ?>"
+							style="display:none;">
+						<?php echo wp_kses_post( $section['btn'] ); ?>
+					</button>
+					<?php if ( 'broken_links' === $section_key ) : ?>
+					<button type="button" class="grayfox-apply-links button button-primary"
+							data-section="broken_links"
+							style="display:none;margin-left:8px;">
+						<?php esc_html_e( 'Apply', 'grayfox' ); ?>
+					</button>
+					<?php endif; ?>
+					<span class="grayfox-fix-status" style="margin-left:8px;font-style:italic;"></span>
+				<?php elseif ( 'seo' === $section_key ) : ?>
+					<?php if ( $is_pro ) : ?>
+						<a href="<?php echo esc_url( admin_url( 'admin.php?page=grayfox-seo' ) ); ?>"
+						   class="button button-primary" style="display:none;" id="grayfox-seo-configure">
+							<?php esc_html_e( 'Configure SEO', 'grayfox' ); ?>
+						</a>
+					<?php else : ?>
+						<a href="#" class="button button-primary grayfox-upgrade-cta" style="display:none;"
+						   id="grayfox-seo-upgrade">
+							<?php esc_html_e( 'Upgrade to Pro to Fix SEO Issues', 'grayfox' ); ?>
+						</a>
+					<?php endif; ?>
+				<?php endif; ?>
+			</div>
+		</div>
+		<?php endforeach; ?>
+	</div>
+
 </div>

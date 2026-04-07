@@ -1,0 +1,35 @@
+Company: {{COMPANY_NAME}}
+Page: "{{PAGE_TITLE}}"
+Page purpose: {{CONTENT_BRIEF}}
+
+Revision directive:
+{{REVISION_DIRECTIVE}}
+
+New layout pattern: {{PATTERN_LABEL}}
+Sequence guide: {{PATTERN_SEQUENCE}}
+
+Current content (reference — reorganize and adapt to the new pattern):
+{{BLOCKS_JSON}}
+
+Block type schemas:
+- {"type":"cover","heading":"Hero headline","subtext":"One sentence tagline","keyword":"2-4 word stock photo search term"}
+- {"type":"heading","level":2,"content":"Section title"}
+- {"type":"paragraph","content":"Two to three sentences of substantive body copy"}
+- {"type":"columns","columns":[{"heading":"Title A","content":"Description"},{"heading":"Title B","content":"Description"},{"heading":"Title C","content":"Description"}]}
+- {"type":"list","ordered":false,"items":["Item one","Item two","Item three","Item four"]}
+- {"type":"buttons","buttons":[{"text":"Primary CTA","url":"#"},{"text":"Secondary CTA","url":"#"}]}
+- {"type":"table","header":["Column A","Column B","Column C"],"rows":[["val","val","val"]]}
+- {"type":"quote","content":"A compelling statement or key fact","citation":"Source, role, or context"}
+- {"type":"separator"}
+- {"type":"media_text","heading":"Section title","content":"Two to three sentences","keyword":"2-4 word stock photo search term","media_position":"left"}
+- {"type":"image","keyword":"2-4 word stock photo search term"}
+
+Return JSON only — no markdown fences, no explanation:
+{"blocks":[...]}
+
+Rules:
+- Follow the sequence guide as the structural blueprint
+- 6 to 12 blocks total
+- Use the actual company name ({{COMPANY_NAME}}) — never write "the company"
+- Keep all facts accurate — do not invent new claims not in the current content
+- keywords in image/cover/media_text must be descriptive 2-4 word stock photo search phrases

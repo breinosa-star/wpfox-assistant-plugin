@@ -44,6 +44,7 @@ class GrayFox_Admin {
 		$loader->add_action( 'wp_ajax_grayfox_get_build_progress',       $this, 'handle_get_build_progress' );
 		$loader->add_action( 'wp_ajax_grayfox_undo_site_build',          $this, 'handle_undo_site_build' );
 		$loader->add_action( 'wp_ajax_grayfox_save_unsplash_key',        $this, 'handle_save_unsplash_key' );
+		$loader->add_action( 'wp_ajax_grayfox_submit_page_revisions',    $this, 'handle_submit_page_revisions' );
 	}
 
 	/**
@@ -121,11 +122,12 @@ class GrayFox_Admin {
 
 		// Enqueue Site Builder JS only on the grayfox-site-builder page.
 		if ( false !== strpos( $hook, 'grayfox-site-builder' ) ) {
+			$sb_js_ver = GRAYFOX_VERSION . '.' . filemtime( GRAYFOX_PATH . 'assets/dist/grayfox-site-builder.min.js' );
 			wp_enqueue_script(
 				'grayfox-site-builder',
 				GRAYFOX_URL . 'assets/dist/grayfox-site-builder.min.js',
 				array(),
-				GRAYFOX_VERSION,
+				$sb_js_ver,
 				true
 			);
 
@@ -144,7 +146,14 @@ class GrayFox_Admin {
 						'getBuildProgress'       => wp_create_nonce( 'grayfox_get_build_progress' ),
 						'undoSiteBuild'          => wp_create_nonce( 'grayfox_undo_site_build' ),
 						'saveUnsplashKey'        => wp_create_nonce( 'grayfox_save_unsplash_key' ),
+						'submitPageRevisions'    => wp_create_nonce( 'grayfox_submit_page_revisions' ),
+					'runSiteAudit'           => wp_create_nonce( 'grayfox_run_site_audit' ),
+					'fixAuditSection'        => wp_create_nonce( 'grayfox_fix_audit_section' ),
+					'getAuditResults'        => wp_create_nonce( 'grayfox_get_audit_results' ),
+					'getFooterConfig'        => wp_create_nonce( 'grayfox_get_footer_config' ),
+					'saveFooterConfig'       => wp_create_nonce( 'grayfox_save_footer_config' ),
 					),
+					'isPro' => GrayFox_License::get_verified_tier() !== 'free',
 				)
 			);
 		}
@@ -699,16 +708,21 @@ class GrayFox_Admin {
 			wp_send_json_error( __( 'LLM not configured.', 'grayfox' ) );
 		}
 
+		// Valid page_type values — shared between the sitemap prompt and the pattern
+		// selection step in generate_page(). Keeping them in one place avoids drift.
+		$page_types = 'home, about, team, services_overview, service_detail, product_overview, product_detail, pricing, contact, portfolio, technical, landing, reference';
+
 		$messages = array(
 			array(
 				'role'    => 'system',
-				'content' => 'You are a professional web architect. Design a website structure for a real business based solely on its knowledge base. Every page you create must map to actual content in the KB. Never invent pages for topics with insufficient information.',
+				'content' => GRAYFOX_PROMPT_SITE_BUILDER_SITEMAP_SYSTEM,
 			),
 			array(
 				'role'    => 'user',
-				'content' => sprintf(
-					"Read this business knowledge base and design a website for it.\n\nKnowledge base:\n%s\n\nReturn JSON only — no markdown, no explanation:\n{\n  \"business_profile\": {\n    \"name\": \"exact company name from KB\",\n    \"description\": \"1-2 sentence summary of what the company does\",\n    \"industry\": \"industry type\",\n    \"key_products\": [\"product 1\", \"product 2\"],\n    \"target_customers\": \"who they serve\"\n  },\n  \"pages\": [\n    {\n      \"title\": \"Page Title\",\n      \"content_brief\": \"Specific description of what this page covers — reference real product names, services, and features from the KB\",\n      \"children\": [\n        {\n          \"title\": \"Child Page Title\",\n          \"content_brief\": \"What this child page covers based on KB content\",\n          \"children\": []\n        }\n      ]\n    }\n  ]\n}\n\nRules:\n- Maximum 3 levels of nesting\n- Maximum 12 pages total across all levels\n- Each page must map to substantial KB content — skip topics with thin coverage\n- content_brief must be specific to this business: use real company name, real product names, real features\n- Do not create separate pages for minor sub-topics that belong as sections within a parent page\n- Consolidate related topics into single pages rather than creating many shallow pages",
-					$knowledge_excerpt
+				'content' => str_replace(
+					array( '{{KNOWLEDGE_EXCERPT}}', '{{PAGE_TYPES}}' ),
+					array( $knowledge_excerpt, $page_types ),
+					GRAYFOX_PROMPT_SITE_BUILDER_SITEMAP_USER
 				),
 			),
 		);
@@ -765,11 +779,21 @@ class GrayFox_Admin {
 	 * @return array Sanitized pages array.
 	 */
 	private function sanitize_sitemap_pages( array $pages ): array {
+		$valid_page_types = array(
+			'home', 'about', 'team', 'services_overview', 'service_detail',
+			'product_overview', 'product_detail', 'pricing', 'contact',
+			'portfolio', 'technical', 'landing', 'reference',
+		);
+
 		foreach ( $pages as &$page ) {
 			$page['title']         = sanitize_text_field( $page['title'] ?? '' );
-			// Preserve the content brief so page generation can use it as a
-			// targeted RAG query instead of falling back to the generic title.
 			$page['content_brief'] = sanitize_textarea_field( $page['content_brief'] ?? '' );
+
+			// Whitelist page_type — fall back to 'reference' if the LLM returned an
+			// unknown value so pattern selection always has a valid type to work with.
+			$raw_type        = sanitize_key( $page['page_type'] ?? '' );
+			$page['page_type'] = in_array( $raw_type, $valid_page_types, true ) ? $raw_type : 'reference';
+
 			if ( ! empty( $page['children'] ) && is_array( $page['children'] ) ) {
 				$page['children'] = $this->sanitize_sitemap_pages( $page['children'] );
 			}
@@ -877,6 +901,36 @@ class GrayFox_Admin {
 
 		as_enqueue_async_action( GrayFox_SiteBuilder::AS_HOOK_GENERATE, array( $sitemap, $format ), 'grayfox' );
 
+		// Action Scheduler's async dispatch fires a loopback HTTP request to start
+		// the queue runner. In some environments (Docker, certain hosts) that
+		// request fails because the container can't reach itself via its public
+		// URL, leaving the job pending until the next WP-Cron tick.
+		//
+		// Strategy (works universally — no CLI dependency):
+		//
+		// • With fastcgi_finish_request() (PHP-FPM): close the browser connection
+		//   first, then run the AS queue directly in the same process. The AJAX
+		//   response is delivered immediately; generation runs in the background.
+		//
+		// • Without it (mod_php, litespeed, etc.): running AS in the shutdown hook
+		//   keeps the browser connection open for the duration of generation,
+		//   blocking the AJAX response and preventing the spinner from appearing.
+		//   Instead, fire spawn_cron() — a non-blocking background HTTP request to
+		//   wp-cron.php that returns instantly. WP-Cron triggers AS within seconds
+		//   on standard hosts. In Docker loopback-blocked setups it may still delay,
+		//   but the pending-state UI ("Waiting for background worker…") covers that.
+		add_action( 'shutdown', static function (): void {
+			if ( function_exists( 'fastcgi_finish_request' ) ) {
+				fastcgi_finish_request();
+				if ( class_exists( 'ActionScheduler_QueueRunner' ) ) {
+					ActionScheduler_QueueRunner::instance()->run();
+				}
+				return;
+			}
+			// Non-blocking cron spawn — fires and forgets, does not delay response.
+			spawn_cron();
+		} );
+
 		wp_send_json_success( array( 'started' => true ) );
 	}
 
@@ -908,6 +962,94 @@ class GrayFox_Admin {
 		}
 
 		wp_send_json_success( get_option( GrayFox_SiteBuilder::BUILD_OPTION, array( 'status' => 'idle' ) ) );
+	}
+
+	/**
+	 * AJAX: Enqueue per-page revision jobs from the Results table.
+	 *
+	 * Expects $_POST['revisions'] as a JSON-encoded array of objects:
+	 *   [ { post_id, action_type, dropdown_selection, user_hint }, ... ]
+	 */
+	public function handle_submit_page_revisions(): void {
+		check_ajax_referer( 'grayfox_submit_page_revisions' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( __( 'Unauthorized.', 'grayfox' ), 403 );
+		}
+
+		$raw       = isset( $_POST['revisions'] ) ? wp_unslash( $_POST['revisions'] ) : '[]'; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+		$revisions = json_decode( $raw, true );
+
+		if ( ! is_array( $revisions ) || empty( $revisions ) ) {
+			wp_send_json_error( __( 'No revisions submitted.', 'grayfox' ) );
+		}
+
+		$valid_actions = array( 'revise_copy', 'rearrange', 'new_images' );
+		$queued        = 0;
+
+		foreach ( $revisions as $rev ) {
+			$post_id = (int) ( $rev['post_id'] ?? 0 );
+			$action  = sanitize_key( $rev['action_type'] ?? '' );
+
+			if ( ! $post_id || ! in_array( $action, $valid_actions, true ) ) {
+				continue;
+			}
+
+			// Mark pending in build option immediately so UI can reflect queued state.
+			$this->mark_revision_pending( $post_id );
+
+			as_enqueue_async_action(
+				GrayFox_SiteBuilder::AS_HOOK_REVISE,
+				array(
+					array(
+						'post_id'            => $post_id,
+						'action_type'        => $action,
+						'dropdown_selection' => sanitize_text_field( $rev['dropdown_selection'] ?? '' ),
+						'user_hint'          => sanitize_text_field( mb_substr( $rev['user_hint'] ?? '', 0, 50 ) ),
+					),
+				),
+				'grayfox'
+			);
+			$queued++;
+		}
+
+		if ( ! $queued ) {
+			wp_send_json_error( __( 'No valid revision requests found.', 'grayfox' ) );
+		}
+
+		// Trigger cron to start jobs promptly (mirrors the main generation flow).
+		add_action( 'shutdown', static function (): void {
+			if ( function_exists( 'fastcgi_finish_request' ) ) {
+				fastcgi_finish_request();
+				if ( class_exists( 'ActionScheduler_QueueRunner' ) ) {
+					ActionScheduler_QueueRunner::instance()->run();
+				}
+				return;
+			}
+			spawn_cron();
+		} );
+
+		wp_send_json_success( array( 'queued' => $queued ) );
+	}
+
+	/**
+	 * Mark a page's revision status as 'pending' in the build option.
+	 *
+	 * @param int $post_id Page ID.
+	 */
+	private function mark_revision_pending( int $post_id ): void {
+		$build = get_option( GrayFox_SiteBuilder::BUILD_OPTION, array() );
+		if ( ! isset( $build['pages'] ) || ! is_array( $build['pages'] ) ) {
+			return;
+		}
+		foreach ( $build['pages'] as &$page ) {
+			if ( (int) ( $page['post_id'] ?? 0 ) === $post_id ) {
+				$page['revision_status'] = 'pending';
+				break;
+			}
+		}
+		unset( $page );
+		update_option( GrayFox_SiteBuilder::BUILD_OPTION, $build );
 	}
 
 	/**
@@ -967,4 +1109,5 @@ class GrayFox_Admin {
 
 		wp_send_json_success( array( 'saved' => true ) );
 	}
+
 }

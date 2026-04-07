@@ -127,6 +127,152 @@ class GrayFox_LLM {
 	}
 
 	/**
+	 * Non-streaming plain-text request (no JSON mode enforced).
+	 *
+	 * Use this for calls that return prose rather than structured JSON — e.g.
+	 * intent translation, short summaries. Returns the raw text content.
+	 *
+	 * @param string $provider    Provider slug.
+	 * @param string $api_key     API key.
+	 * @param string $model       Model identifier.
+	 * @param array  $messages    Chat messages array.
+	 * @param float  $temperature Sampling temperature.
+	 * @return string Plain text response, or empty string on failure.
+	 */
+	public function request_text( string $provider, string $api_key, string $model, array $messages, float $temperature = 0.3 ): string {
+		try {
+			return match ( $provider ) {
+				'openai'    => $this->text_openai( $api_key, $model, $messages, $temperature ),
+				'anthropic' => $this->text_anthropic( $api_key, $model, $messages, $temperature ),
+				'gemini'    => $this->text_gemini( $api_key, $model, $messages, $temperature ),
+				'groq'      => $this->text_openai( $api_key, $model, $messages, $temperature, 'https://api.groq.com/openai/v1/chat/completions' ),
+				default     => $this->text_openai( $api_key, $model, $messages, $temperature ),
+			};
+		} catch ( \Throwable $e ) {
+			error_log( 'GrayFox LLM request_text error (' . $provider . '): ' . $e->getMessage() );
+			return '';
+		}
+	}
+
+	/**
+	 * Plain-text request to OpenAI — no response_format constraint.
+	 */
+	private function text_openai( string $api_key, string $model, array $messages, float $temperature, string $endpoint = 'https://api.openai.com/v1/chat/completions' ): string {
+		$max_tokens = 256; // Translation calls are short.
+		$payload    = wp_json_encode( array(
+			'model'                 => $model,
+			'messages'              => $messages,
+			'temperature'           => $temperature,
+			'max_completion_tokens' => $max_tokens,
+		) );
+
+		$response = wp_remote_post( $endpoint, array(
+			'headers' => array(
+				'Authorization' => 'Bearer ' . $api_key,
+				'Content-Type'  => 'application/json',
+			),
+			'body'    => $payload,
+			'timeout' => 30,
+		) );
+
+		if ( is_wp_error( $response ) ) {
+			return '';
+		}
+
+		$body = json_decode( wp_remote_retrieve_body( $response ), true );
+		return trim( $body['choices'][0]['message']['content'] ?? '' );
+	}
+
+	/**
+	 * Plain-text request to Anthropic — no JSON prefill.
+	 */
+	private function text_anthropic( string $api_key, string $model, array $messages, float $temperature ): string {
+		$system_content = '';
+		$filtered       = array();
+		foreach ( $messages as $msg ) {
+			if ( 'system' === $msg['role'] ) {
+				$system_content = $msg['content'];
+			} else {
+				$filtered[] = $msg;
+			}
+		}
+
+		$body = array(
+			'model'       => $model,
+			'max_tokens'  => 256,
+			'temperature' => $temperature,
+			'messages'    => $filtered,
+		);
+		if ( ! empty( $system_content ) ) {
+			$body['system'] = $system_content;
+		}
+
+		$response = wp_remote_post( 'https://api.anthropic.com/v1/messages', array(
+			'headers' => array(
+				'x-api-key'         => $api_key,
+				'anthropic-version' => '2023-06-01',
+				'Content-Type'      => 'application/json',
+			),
+			'body'    => wp_json_encode( $body ),
+			'timeout' => 30,
+		) );
+
+		if ( is_wp_error( $response ) ) {
+			return '';
+		}
+
+		$result = json_decode( wp_remote_retrieve_body( $response ), true );
+		return trim( $result['content'][0]['text'] ?? '' );
+	}
+
+	/**
+	 * Plain-text request to Google Gemini — no JSON MIME type.
+	 */
+	private function text_gemini( string $api_key, string $model, array $messages, float $temperature ): string {
+		$url = 'https://generativelanguage.googleapis.com/v1beta/models/' . rawurlencode( $model ) . ':generateContent?key=' . rawurlencode( $api_key );
+
+		$contents       = array();
+		$system_content = '';
+		foreach ( $messages as $msg ) {
+			if ( 'system' === $msg['role'] ) {
+				$system_content = $msg['content'];
+				continue;
+			}
+			$role       = ( 'assistant' === $msg['role'] ) ? 'model' : 'user';
+			$contents[] = array(
+				'role'  => $role,
+				'parts' => array( array( 'text' => $msg['content'] ) ),
+			);
+		}
+
+		$body = array(
+			'contents'         => $contents,
+			'generationConfig' => array(
+				'maxOutputTokens' => 256,
+				'temperature'     => $temperature,
+			),
+		);
+		if ( ! empty( $system_content ) ) {
+			$body['systemInstruction'] = array(
+				'parts' => array( array( 'text' => $system_content ) ),
+			);
+		}
+
+		$response = wp_remote_post( $url, array(
+			'headers' => array( 'Content-Type' => 'application/json' ),
+			'body'    => wp_json_encode( $body ),
+			'timeout' => 30,
+		) );
+
+		if ( is_wp_error( $response ) ) {
+			return '';
+		}
+
+		$result = json_decode( wp_remote_retrieve_body( $response ), true );
+		return trim( $result['candidates'][0]['content']['parts'][0]['text'] ?? '' );
+	}
+
+	/**
 	 * Non-streaming JSON request to OpenAI or OpenAI-compatible endpoint.
 	 */
 	private function json_openai( string $api_key, string $model, array $messages, float $temperature, string $endpoint = 'https://api.openai.com/v1/chat/completions' ): string {
