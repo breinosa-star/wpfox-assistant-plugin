@@ -39,25 +39,36 @@ function grayfox_get_encryption_key(): string {
 /**
  * Encrypt a plaintext string with AES-256-CBC.
  *
+ * Output is prefixed with 'gf1:' so the sanitize callback can detect an
+ * already-encrypted value and skip re-encryption (WordPress calls the
+ * sanitize callback twice when adding a new option for the first time).
+ *
  * @param string $plaintext Value to encrypt.
- * @return string Base64-encoded IV + ciphertext.
+ * @return string Prefixed base64-encoded IV + ciphertext.
  */
 function grayfox_encrypt( string $plaintext ): string {
 	$key = grayfox_get_encryption_key();
 	$iv  = random_bytes( 16 );
 	$enc = openssl_encrypt( $plaintext, 'AES-256-CBC', $key, 0, $iv );
-	return base64_encode( $iv . $enc );
+	return 'gf1:' . base64_encode( $iv . $enc );
 }
 
 /**
  * Decrypt a value produced by grayfox_encrypt().
  *
- * @param string $ciphertext Base64-encoded IV + ciphertext.
+ * Accepts both prefixed ('gf1:...') and legacy (bare base64) values so
+ * keys stored before the prefix was introduced continue to work.
+ *
+ * @param string $ciphertext Encrypted value.
  * @return string Plaintext, or empty string on failure.
  */
 function grayfox_decrypt( string $ciphertext ): string {
 	if ( empty( $ciphertext ) ) {
 		return '';
+	}
+	// Strip prefix if present (current format).
+	if ( strpos( $ciphertext, 'gf1:' ) === 0 ) {
+		$ciphertext = substr( $ciphertext, 4 );
 	}
 	$key  = grayfox_get_encryption_key();
 	$data = base64_decode( $ciphertext );

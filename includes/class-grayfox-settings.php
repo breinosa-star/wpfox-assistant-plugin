@@ -770,6 +770,13 @@ class GrayFox_Settings {
 		if ( preg_match( '/^\*+$/', $input ) ) {
 			return get_option( 'grayfox_llm_api_key', '' );
 		}
+		// WordPress calls sanitize_option twice when adding a new option for
+		// the first time (once in update_option, again in add_option). The
+		// 'gf1:' prefix lets us detect an already-encrypted value and skip
+		// re-encryption on the second call.
+		if ( strpos( $input, 'gf1:' ) === 0 ) {
+			return $input;
+		}
 		return grayfox_encrypt( $input );
 	}
 
