@@ -591,10 +591,19 @@ class GrayFox_Admin {
 
 		$llm    = new GrayFox_LLM();
 		$raw    = $llm->request_json( $provider, $api_key, $model, $messages, 0.3 );
+
+		if ( '' === $raw ) {
+			wp_send_json_error( __( 'The AI provider did not respond. This may be a temporary issue or an invalid API key. Please check your LLM settings and try again.', 'grayfox' ) );
+		}
+
 		$parsed = json_decode( $raw, true );
 
-		if ( ! is_array( $parsed ) || empty( $parsed['pages'] ) ) {
-			wp_send_json_error( __( 'Failed to generate sitemap. Please try again.', 'grayfox' ) );
+		if ( ! is_array( $parsed ) ) {
+			wp_send_json_error( __( 'The AI returned an unexpected response. Please try again.', 'grayfox' ) );
+		}
+
+		if ( empty( $parsed['pages'] ) ) {
+			wp_send_json_error( __( 'The AI response was missing the expected sitemap structure. Please try again.', 'grayfox' ) );
 		}
 
 		// Persist the business profile so page generation can reference it without

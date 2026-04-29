@@ -49,6 +49,11 @@ const EXCLUDES = [
 	'manual-test-checklist.md',
 	'qa-report.md',
 	'qa-tester.md',
+	'.idea',
+	'.vscode',
+	'.sops.yaml',
+	'.env',
+	'.env.enc',
 ];
 
 // Ensure builds directory exists.

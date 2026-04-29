@@ -15,25 +15,10 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-grayfox-db.php';
 
-// Remove all plugin options.
-$grayfox_options = array(
-	'grayfox_llm_provider',
-	'grayfox_llm_api_key',
-	'grayfox_llm_model',
-	'grayfox_llm_max_tokens',
-	'grayfox_widget_name',
-	'grayfox_widget_color',
-	'grayfox_widget_position',
-	'grayfox_widget_welcome_message',
-	'grayfox_enable_widget',
-	'grayfox_inactivity_timeout',
-	'grayfox_session_message_limit',
-	'grayfox_db_version',
-);
+global $wpdb;
 
-foreach ( $grayfox_options as $option ) {
-	delete_option( $option );
-}
+// Remove all plugin options and transients by prefix.
+$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE 'grayfox\_%' OR option_name LIKE '\_transient\_grayfox%' OR option_name LIKE '\_transient\_timeout\_grayfox%'" );
 
 // Drop all custom tables.
 GrayFox_DB::drop_tables();
