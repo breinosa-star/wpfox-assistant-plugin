@@ -1,0 +1,12 @@
+Suggest a label for each unlabeled button listed below. Use the page context and button URL to infer its purpose.
+
+Page title: {{PAGE_TITLE}}
+Page context (first 400 chars of body text): {{PAGE_CONTEXT}}
+
+Buttons needing labels (JSON array — each item has index and url):
+{{BUTTONS_JSON}}
+
+Return ONLY this JSON array — no markdown, no explanation:
+[{"index":0,"label":"...","confidence":"high|medium|low","reason":"..."}]
+
+Keep each label 2–5 words. Use action verbs (e.g. "Get a Free Quote", "Contact Us Today", "Learn More About Us"). If the URL gives a clear hint, use it.

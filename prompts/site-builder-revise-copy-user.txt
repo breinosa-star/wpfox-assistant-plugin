@@ -1,0 +1,18 @@
+Company: {{COMPANY_NAME}}
+Page: "{{PAGE_TITLE}}"
+
+Revision directive:
+{{REVISION_DIRECTIVE}}
+
+Current blocks JSON:
+{{BLOCKS_JSON}}
+
+Return JSON only — no markdown fences, no explanation:
+{"blocks":[...]}
+
+Rules:
+- Keep every block type and block order exactly as-is
+- Keep every image keyword exactly as-is
+- Rewrite all heading, paragraph, list item, column, quote, and button text according to the directive
+- Use the actual company name ({{COMPANY_NAME}}) — never write "the company"
+- Every fact must remain accurate — do not invent new claims not present in the existing content

@@ -1,0 +1,118 @@
+/*
+ * Archetype: glassmorphism
+ * Character: Frosted-glass cards, backdrop-filter blur, translucent surfaces,
+ *            soft glowing shadows, fully rounded buttons. Rich and modern.
+ *            Think Raycast, Arc browser, high-end SaaS landing pages.
+ * Best for:  Tech startups, apps, creative SaaS, AI products.
+ * Note:      Works best when sections have gradient or image backgrounds.
+ *            Pair with vivid primary colors for maximum effect.
+ */
+
+/* ── Bootstrap radius tokens ─────────────────────────────────────────────── */
+:root {
+  --bs-border-radius:      14px;
+  --bs-border-radius-sm:   10px;
+  --bs-border-radius-lg:   20px;
+  --bs-border-radius-xl:   28px;
+  --bs-border-radius-xxl:  36px;
+  --bs-border-radius-pill: 50rem;
+}
+
+/* ── Bootstrap shadow tokens ─────────────────────────────────────────────── */
+:root {
+  --bs-box-shadow:    0 8px 32px rgba(0,0,0,.12), inset 0 1px 0 rgba(255,255,255,.15);
+  --bs-box-shadow-sm: 0 4px 16px rgba(0,0,0,.08);
+  --bs-box-shadow-lg: 0 16px 48px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.2);
+}
+
+/* ── Card — frosted glass surface ────────────────────────────────────────── */
+.card {
+  --bs-card-border-radius: 16px;
+  --bs-card-bg:            rgba(255,255,255,.12);
+  --bs-card-border-color:  rgba(255,255,255,.25);
+  --bs-card-border-width:  1px;
+  --bs-card-box-shadow:    0 8px 32px rgba(0,0,0,.12), inset 0 1px 0 rgba(255,255,255,.15);
+  --bs-card-spacer-y:      1.75rem;
+  --bs-card-spacer-x:      1.75rem;
+  backdrop-filter:         blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* Light-mode card (sections without dark/gradient bg) */
+.gf-section-tint .card,
+section:not(.gf-hero-section) .card {
+  --bs-card-bg:           rgba(255,255,255,.85);
+  --bs-card-border-color: rgba(255,255,255,.6);
+  backdrop-filter:        blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* ── Buttons — pill shape, glow on hover ─────────────────────────────────── */
+.btn {
+  border-radius: 50rem;
+  padding:       .7rem 1.75rem;
+  font-weight:   600;
+  transition:    transform .2s ease, box-shadow .2s ease;
+}
+.btn:hover {
+  transform:  translateY(-2px);
+  box-shadow: 0 8px 24px rgba(var(--gf-primary-rgb), .35);
+}
+.btn-lg {
+  padding: .9rem 2.25rem;
+}
+.btn-outline-primary {
+  backdrop-filter: blur(8px);
+}
+
+/* ── Section tint — subtle gradient wash ─────────────────────────────────── */
+.gf-section-tint {
+  background: linear-gradient(
+    135deg,
+    rgba(var(--gf-primary-rgb), .04) 0%,
+    rgba(var(--gf-primary-rgb), .01) 100%
+  );
+}
+
+/* ── Hero — rich gradient with noise texture feel ────────────────────────── */
+.gf-hero-section {
+  background: linear-gradient(
+    135deg,
+    var(--gf-primary) 0%,
+    var(--gf-secondary) 60%,
+    color-mix(in srgb, var(--gf-primary) 70%, var(--gf-accent)) 100%
+  );
+}
+
+/* ── Feature card — glass variant ────────────────────────────────────────── */
+.gf-feature-card {
+  border-top: none;
+  background: rgba(255,255,255,.1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,.2);
+}
+
+/* ── Feature icon — glowing circle ──────────────────────────────────────── */
+.gf-feature-icon {
+  border-radius: 50%;
+  background: rgba(var(--gf-primary-rgb), .12);
+  box-shadow: 0 0 0 8px rgba(var(--gf-primary-rgb), .05);
+}
+
+/* ── CTA band — multi-stop gradient ─────────────────────────────────────── */
+.gf-cta-band {
+  background: linear-gradient(
+    135deg,
+    var(--gf-accent) 0%,
+    color-mix(in srgb, var(--gf-accent) 60%, var(--gf-primary)) 100%
+  ) !important;
+}
+
+/* ── Hover lift ──────────────────────────────────────────────────────────── */
+.gf-feature-card:hover,
+.gf-service-card:hover,
+.gf-pricing-card:hover {
+  transform:  translateY(-6px);
+  box-shadow: 0 20px 48px rgba(0,0,0,.18);
+}

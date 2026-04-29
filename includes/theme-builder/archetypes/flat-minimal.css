@@ -1,0 +1,91 @@
+/*
+ * Archetype: flat-minimal
+ * Character: No shadows, sharp or near-sharp corners, everything defined by
+ *            borders and negative space. Confident, editorial restraint.
+ *            Think Notion, Linear, Swiss-style design systems.
+ * Best for:  Productivity tools, developer tools, professional services,
+ *            design-forward agencies, law/consulting firms.
+ */
+
+/* ── Bootstrap radius tokens ─────────────────────────────────────────────── */
+:root {
+  --bs-border-radius:      2px;
+  --bs-border-radius-sm:   2px;
+  --bs-border-radius-lg:   2px;
+  --bs-border-radius-xl:   4px;
+  --bs-border-radius-xxl:  4px;
+  --bs-border-radius-pill: 2px;   /* pills become sharp rectangles */
+}
+
+/* ── Bootstrap shadow tokens — all eliminated ────────────────────────────── */
+:root {
+  --bs-box-shadow:    none;
+  --bs-box-shadow-sm: none;
+  --bs-box-shadow-lg: none;
+}
+
+/* ── Card ────────────────────────────────────────────────────────────────── */
+.card {
+  --bs-card-border-radius: 2px;
+  --bs-card-border-color:  rgba(0,0,0,.12);
+  --bs-card-border-width:  1px;
+  --bs-card-box-shadow:    none;
+  --bs-card-spacer-y:      1.75rem;
+  --bs-card-spacer-x:      1.75rem;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+.btn {
+  border-radius: 2px;
+  padding:       .625rem 1.5rem;
+  font-weight:   600;
+  box-shadow:    none !important;  /* no lift shadow on this archetype */
+  transition:    background-color .15s ease, color .15s ease;
+}
+.btn:hover {
+  transform: none;
+}
+.btn-lg {
+  border-radius: 2px;
+  padding:       .875rem 2.25rem;
+}
+
+/* ── Section tint ────────────────────────────────────────────────────────── */
+.gf-section-tint {
+  background-color: #f7f7f5;
+  border-top:    1px solid rgba(0,0,0,.06);
+  border-bottom: 1px solid rgba(0,0,0,.06);
+}
+
+/* ── Feature cards — left accent stripe replaces top border/shadow ───────── */
+.gf-feature-card {
+  border-top:  none;
+  border-left: 3px solid var(--gf-accent);
+}
+
+/* ── Heading treatment — slightly more weight ────────────────────────────── */
+.gf-section-heading {
+  letter-spacing: -.03em;
+}
+
+/* ── Hero treatment — solid colour, no gradient ──────────────────────────── */
+.gf-hero-section {
+  background: var(--gf-primary);
+}
+.gf-hero-section::after {
+  display: none;  /* remove radial highlight overlay */
+}
+
+/* ── Hover interactions — border shift instead of lift ───────────────────── */
+.gf-feature-card:hover,
+.gf-service-card:hover,
+.gf-pricing-card:hover {
+  transform:  none;
+  box-shadow: none;
+  border-color: var(--gf-accent);
+}
+
+/* ── CTA band — solid, no gradient ──────────────────────────────────────── */
+.gf-cta-band {
+  background: var(--gf-primary) !important;
+}

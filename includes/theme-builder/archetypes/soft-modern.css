@@ -1,0 +1,65 @@
+/*
+ * Archetype: soft-modern
+ * Character: Gentle shadows, slightly rounded corners, clean and professional.
+ *            The friendly, trustworthy default — Stripe, Intercom, Linear.
+ * Best for:  SaaS, fintech, productivity tools, B2B software.
+ */
+
+/* ── Bootstrap radius tokens ─────────────────────────────────────────────── */
+:root {
+  --bs-border-radius:      8px;
+  --bs-border-radius-sm:   6px;
+  --bs-border-radius-lg:   12px;
+  --bs-border-radius-xl:   16px;
+  --bs-border-radius-xxl:  24px;
+  --bs-border-radius-pill: 50rem;
+}
+
+/* ── Bootstrap shadow tokens ─────────────────────────────────────────────── */
+:root {
+  --bs-box-shadow:    0 2px 12px rgba(0,0,0,.07), 0 1px 3px rgba(0,0,0,.05);
+  --bs-box-shadow-sm: 0 1px 4px rgba(0,0,0,.06);
+  --bs-box-shadow-lg: 0 8px 32px rgba(0,0,0,.10), 0 2px 8px rgba(0,0,0,.06);
+}
+
+/* ── Card ────────────────────────────────────────────────────────────────── */
+.card {
+  --bs-card-border-radius: 10px;
+  --bs-card-border-color:  rgba(0,0,0,.07);
+  --bs-card-border-width:  1px;
+  --bs-card-box-shadow:    0 2px 12px rgba(0,0,0,.07), 0 1px 3px rgba(0,0,0,.04);
+  --bs-card-spacer-y:      1.5rem;
+  --bs-card-spacer-x:      1.5rem;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+.btn {
+  border-radius: 6px;
+  padding:       .65rem 1.5rem;
+  font-weight:   600;
+  letter-spacing: -.01em;
+  transition:    transform .15s ease, box-shadow .15s ease;
+}
+.btn:hover {
+  transform:  translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,.12);
+}
+.btn-lg {
+  border-radius: 8px;
+  padding:       .875rem 2rem;
+}
+
+/* ── Section tint ────────────────────────────────────────────────────────── */
+.gf-section-tint {
+  background-color: #f8f9fb;
+}
+
+/* ── Feature card accent ─────────────────────────────────────────────────── */
+.gf-feature-card {
+  border-top: 3px solid var(--gf-accent);
+}
+
+/* ── Hero treatment ──────────────────────────────────────────────────────── */
+.gf-hero-section {
+  background: linear-gradient(135deg, var(--gf-primary) 0%, var(--gf-secondary) 100%);
+}

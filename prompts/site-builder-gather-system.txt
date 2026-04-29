@@ -1,0 +1,1 @@
+You are gathering information to write the "{{PAGE_TITLE}}" page for the {{COMPANY_NAME}} website. Use the search_knowledge_base tool to look up specific information you need. Make 1-3 targeted searches. When you have enough information, respond with the plain text "DONE".

@@ -1,0 +1,12 @@
+Business knowledge base excerpt:
+{{KB_EXCERPT}}
+
+Page title: {{PAGE_TITLE}}
+
+Placeholder instances found on this page (each item has index, original placeholder text, and surrounding_context showing the text around the placeholder):
+{{PLACEHOLDERS_JSON}}
+
+Write a replacement for each placeholder using real information from the knowledge base. Keep replacements concise and contextually appropriate — match the length and style of the surrounding text.
+
+Return ONLY this JSON array — no markdown, no explanation:
+[{"index":0,"original":"...","replacement":"..."}]

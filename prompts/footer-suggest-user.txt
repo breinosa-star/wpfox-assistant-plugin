@@ -1,0 +1,30 @@
+Assign every page to either the header navigation menu or the footer navigation menu.
+
+SITEMAP (reflects the page hierarchy — use this to determine parent/child nesting in header_nav):
+{{SITEMAP_JSON}}
+
+ALL PAGES (with slug and page_type for reference):
+{{PAGES_JSON}}
+
+Rules:
+- Every page must appear in exactly one menu.
+- Home always goes in header_nav at the top level.
+- Pages whose page_type contains "legal", "policy", or "terms" always go in footer_nav.
+- header_nav should have 4–6 top-level items. If a sitemap page has children, include those children nested under their parent in header_nav.
+- footer_nav gets secondary, supporting, and legal pages.
+- If there are more than 7 pages total, at least 2 must go in footer_nav.
+
+Return ONLY this JSON structure — no markdown, no explanation:
+{
+  "header_nav": [
+    {"title": "...", "slug": "...", "children": [
+      {"title": "...", "slug": "..."}
+    ]},
+    {"title": "...", "slug": "..."}
+  ],
+  "footer_nav": [
+    {"title": "...", "slug": "..."}
+  ]
+}
+
+Children arrays may be empty or omitted for leaf pages.

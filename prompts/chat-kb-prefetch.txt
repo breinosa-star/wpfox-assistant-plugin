@@ -1,0 +1,4 @@
+KNOWLEDGE BASE:
+Use the following information to answer questions accurately. If a topic is not covered, say so honestly.
+
+{{KNOWLEDGE_JSON}}
