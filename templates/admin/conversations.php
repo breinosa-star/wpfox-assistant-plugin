@@ -45,37 +45,37 @@ $conversations = $wpdb->get_results( $wpdb->prepare(
 ), ARRAY_A );
 ?>
 <div class="wrap grayfox-admin-wrap">
-	<h1><?php esc_html_e( 'Conversations', 'grayfox' ); ?></h1>
+	<h1><?php esc_html_e( 'Conversations', 'kbfox' ); ?></h1>
 
 	<!-- Date filter form -->
 	<form method="get" class="grayfox-date-filter">
 		<input type="hidden" name="page" value="grayfox-conversations" />
 		<label>
-			<?php esc_html_e( 'From:', 'grayfox' ); ?>
+			<?php esc_html_e( 'From:', 'kbfox' ); ?>
 			<input type="date"
 				   name="date_from"
 				   value="<?php echo esc_attr( $date_from_raw ?: gmdate( 'Y-m-d', strtotime( '-30 days' ) ) ); ?>" />
 		</label>
 		<label>
-			<?php esc_html_e( 'To:', 'grayfox' ); ?>
+			<?php esc_html_e( 'To:', 'kbfox' ); ?>
 			<input type="date"
 				   name="date_to"
 				   value="<?php echo esc_attr( $date_to_raw ?: gmdate( 'Y-m-d' ) ); ?>" />
 		</label>
-		<?php submit_button( __( 'Filter', 'grayfox' ), 'secondary', '', false ); ?>
+		<?php submit_button( __( 'Filter', 'kbfox' ), 'secondary', '', false ); ?>
 	</form>
 
 	<?php if ( empty( $conversations ) ) : ?>
-		<p><?php esc_html_e( 'No conversations found for the selected period.', 'grayfox' ); ?></p>
+		<p><?php esc_html_e( 'No conversations found for the selected period.', 'kbfox' ); ?></p>
 	<?php else : ?>
 		<table class="wp-list-table widefat fixed striped grayfox-conv-table">
 			<thead>
 				<tr>
-					<th><?php esc_html_e( 'Session ID', 'grayfox' ); ?></th>
-					<th><?php esc_html_e( 'Started', 'grayfox' ); ?></th>
-					<th><?php esc_html_e( 'Last Active', 'grayfox' ); ?></th>
-					<th><?php esc_html_e( 'Messages', 'grayfox' ); ?></th>
-					<th><?php esc_html_e( 'Actions', 'grayfox' ); ?></th>
+					<th><?php esc_html_e( 'Session ID', 'kbfox' ); ?></th>
+					<th><?php esc_html_e( 'Started', 'kbfox' ); ?></th>
+					<th><?php esc_html_e( 'Last Active', 'kbfox' ); ?></th>
+					<th><?php esc_html_e( 'Messages', 'kbfox' ); ?></th>
+					<th><?php esc_html_e( 'Actions', 'kbfox' ); ?></th>
 				</tr>
 			</thead>
 			<tbody>
@@ -93,7 +93,7 @@ $conversations = $wpdb->get_results( $wpdb->prepare(
 							<button type="button"
 									class="button button-small grayfox-view-conv"
 									data-conv-id="<?php echo esc_attr( $conv_id ); ?>">
-								<?php esc_html_e( 'View Messages', 'grayfox' ); ?>
+								<?php esc_html_e( 'View Messages', 'kbfox' ); ?>
 							</button>
 						</td>
 					</tr>
@@ -111,7 +111,7 @@ $conversations = $wpdb->get_results( $wpdb->prepare(
 							?>
 							<div class="grayfox-message-history">
 								<?php if ( empty( $messages_for_conv ) ) : ?>
-									<p><?php esc_html_e( 'No messages.', 'grayfox' ); ?></p>
+									<p><?php esc_html_e( 'No messages.', 'kbfox' ); ?></p>
 								<?php else : ?>
 									<?php foreach ( $messages_for_conv as $msg ) : ?>
 										<div class="grayfox-conv-message grayfox-conv-message--<?php echo esc_attr( $msg['role'] ); ?>">
@@ -138,10 +138,10 @@ $conversations = $wpdb->get_results( $wpdb->prepare(
 					if (detail) {
 						if (detail.style.display === 'none') {
 							detail.style.display = '';
-							this.textContent = '<?php echo esc_js( __( 'Hide Messages', 'grayfox' ) ); ?>';
+							this.textContent = '<?php echo esc_js( __( 'Hide Messages', 'kbfox' ) ); ?>';
 						} else {
 							detail.style.display = 'none';
-							this.textContent = '<?php echo esc_js( __( 'View Messages', 'grayfox' ) ); ?>';
+							this.textContent = '<?php echo esc_js( __( 'View Messages', 'kbfox' ) ); ?>';
 						}
 					}
 				});

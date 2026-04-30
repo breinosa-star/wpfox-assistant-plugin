@@ -34,11 +34,11 @@ $embed_id    = wp_unique_id( 'grayfox-embed-' );
 
 		<div class="grayfox-input-area">
 			<textarea class="grayfox-input-embed"
-					  placeholder="<?php esc_attr_e( 'Type your message...', 'grayfox' ); ?>"
+					  placeholder="<?php esc_attr_e( 'Type your message...', 'kbfox' ); ?>"
 					  rows="1"
-					  aria-label="<?php esc_attr_e( 'Message input', 'grayfox' ); ?>"></textarea>
+					  aria-label="<?php esc_attr_e( 'Message input', 'kbfox' ); ?>"></textarea>
 			<button class="grayfox-send-embed"
-					aria-label="<?php esc_attr_e( 'Send message', 'grayfox' ); ?>">
+					aria-label="<?php esc_attr_e( 'Send message', 'kbfox' ); ?>">
 				<svg viewBox="0 0 24 24" width="20" height="20" fill="white" xmlns="http://www.w3.org/2000/svg">
 					<path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
 				</svg>

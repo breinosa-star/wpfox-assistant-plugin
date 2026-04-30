@@ -1,15 +1,15 @@
 <?php
 /**
- * Plugin Name: GrayFox AI Assistant
- * Plugin URI:  https://grayfox.io
- * Description: AI-powered chatbot with RAG knowledge base for WordPress
+ * Plugin Name: KBFox
+ * Plugin URI:  https://grayfoxdc.com
+ * Description: KBFox — AI-powered chatbot with RAG knowledge base for WordPress
  * Version:     1.0.0
  * Requires at least: 6.0
  * Requires PHP: 8.1
  * Author:      GrayFox
- * Author URI:  https://grayfox.io
+ * Author URI:  https://grayfoxdc.com
  * License:     GPL-2.0+
- * Text Domain: grayfox
+ * Text Domain: kbfox
  * Domain Path: /languages
  */
 
@@ -150,7 +150,6 @@ register_deactivation_hook( GRAYFOX_PLUGIN_FILE, function () {
 	// Clear scheduled Action Scheduler jobs only — do NOT drop tables.
 	if ( function_exists( 'as_unschedule_all_actions' ) ) {
 		as_unschedule_all_actions( 'grayfox_process_document' );
-		as_unschedule_all_actions( 'grayfox_generate_site_pages' );
 	}
 } );
 

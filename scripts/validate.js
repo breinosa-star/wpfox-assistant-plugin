@@ -9,7 +9,7 @@
  *   node scripts/validate.js                              — check source
  *   node scripts/validate.js --zip ../builds/foo.zip     — check zip contents
  *   npm run validate
- *   npm run validate -- --zip ../builds/grayfox-plugin-1.0.0.zip
+ *   npm run validate -- --zip ../builds/kbfox-1.0.0.zip
  */
 
 'use strict';
@@ -20,7 +20,7 @@ const path         = require('path');
 const os           = require('os');
 
 const PLUGIN_DIR  = path.join(__dirname, '..');
-const PLUGIN_NAME = 'grayfox-plugin';
+const PLUGIN_NAME = 'kbfox';
 
 // ── Args ──────────────────────────────────────────────────────────────────────
 
@@ -142,7 +142,7 @@ stableTag ? ok(`Stable tag: ${stableTag}`) : fail('Stable tag missing');
 
 section('Version consistency');
 
-const mainPhp      = workFile('grayfox.php') || '';
+const mainPhp      = workFile('kbfox.php') || '';
 const headerVerM   = mainPhp.match(/^\s*\*\s*Version:\s*(.+)$/m);
 const headerVer    = headerVerM ? headerVerM[1].trim() : '';
 const constantVerM = mainPhp.match(/define\(\s*'GRAYFOX_VERSION',\s*'([^']+)'\s*\)/);
@@ -170,7 +170,7 @@ if (!ZIP_FILE) {
 section('Required files');
 
 const requiredFiles = [
-	'grayfox.php',
+	'kbfox.php',
 	'readme.txt',
 	'uninstall.php',
 	'includes/class-grayfox-plugin.php',
@@ -181,8 +181,6 @@ const requiredFiles = [
 	'includes/class-grayfox-rag.php',
 	'includes/class-grayfox-settings.php',
 	'assets/dist/grayfox-chat.min.js',
-	'assets/dist/grayfox-theme-builder.min.js',
-	'assets/dist/grayfox-site-builder.min.js',
 ];
 for (const f of requiredFiles) {
 	workExists(f) ? ok(`${f} exists`) : fail(`${f} missing`);
@@ -288,7 +286,7 @@ mainPhp.match(/GPLv2|GPL-2\.0|GPL version 2/i)
 
 section('External services');
 
-const services = ['OpenAI', 'Anthropic', 'Gemini', 'Groq', 'Unsplash'];
+const services = ['OpenAI', 'Anthropic', 'Gemini', 'Groq'];
 for (const svc of services) {
 	readme.includes(svc)
 		? ok(`${svc} disclosed in readme.txt`)

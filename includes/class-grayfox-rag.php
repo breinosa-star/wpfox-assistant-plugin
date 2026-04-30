@@ -129,7 +129,7 @@ class GrayFox_RAG {
 			return;
 		}
 
-		as_enqueue_async_action( self::AS_HOOK, array( $attachment_id ), 'grayfox' );
+		as_enqueue_async_action( self::AS_HOOK, array( $attachment_id ), 'kbfox' );
 	}
 
 	/**

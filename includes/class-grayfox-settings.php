@@ -48,7 +48,7 @@ class GrayFox_Settings {
 		// --- LLM Section ---
 		add_settings_section(
 			'grayfox_llm',
-			__( 'LLM Provider', 'grayfox' ),
+			__( 'LLM Provider', 'kbfox' ),
 			array( $this, 'render_llm_section' ),
 			self::PAGE_SLUG
 		);
@@ -61,7 +61,7 @@ class GrayFox_Settings {
 
 		add_settings_field(
 			'grayfox_llm_provider',
-			__( 'Provider', 'grayfox' ),
+			__( 'Provider', 'kbfox' ),
 			array( $this, 'render_llm_provider_field' ),
 			self::PAGE_SLUG,
 			'grayfox_llm'
@@ -75,7 +75,7 @@ class GrayFox_Settings {
 
 		add_settings_field(
 			'grayfox_llm_api_key',
-			__( 'API Key', 'grayfox' ),
+			__( 'API Key', 'kbfox' ),
 			array( $this, 'render_llm_api_key_field' ),
 			self::PAGE_SLUG,
 			'grayfox_llm'
@@ -89,7 +89,7 @@ class GrayFox_Settings {
 
 		add_settings_field(
 			'grayfox_llm_model',
-			__( 'Model', 'grayfox' ),
+			__( 'Model', 'kbfox' ),
 			array( $this, 'render_llm_model_field' ),
 			self::PAGE_SLUG,
 			'grayfox_llm'
@@ -103,7 +103,7 @@ class GrayFox_Settings {
 
 		add_settings_field(
 			'grayfox_llm_max_tokens',
-			__( 'Max Response Tokens', 'grayfox' ),
+			__( 'Max Response Tokens', 'kbfox' ),
 			array( $this, 'render_llm_max_tokens_field' ),
 			self::PAGE_SLUG,
 			'grayfox_llm'
@@ -112,7 +112,7 @@ class GrayFox_Settings {
 		// --- Appearance Section ---
 		add_settings_section(
 			'grayfox_appearance',
-			__( 'Widget Appearance', 'grayfox' ),
+			__( 'Widget Appearance', 'kbfox' ),
 			array( $this, 'render_appearance_section' ),
 			self::PAGE_SLUG
 		);
@@ -125,7 +125,7 @@ class GrayFox_Settings {
 
 		add_settings_field(
 			'grayfox_widget_name',
-			__( 'Widget Name', 'grayfox' ),
+			__( 'Widget Name', 'kbfox' ),
 			array( $this, 'render_widget_name_field' ),
 			self::PAGE_SLUG,
 			'grayfox_appearance'
@@ -139,7 +139,7 @@ class GrayFox_Settings {
 
 		add_settings_field(
 			'grayfox_widget_color',
-			__( 'Primary Color', 'grayfox' ),
+			__( 'Primary Color', 'kbfox' ),
 			array( $this, 'render_widget_color_field' ),
 			self::PAGE_SLUG,
 			'grayfox_appearance'
@@ -153,7 +153,7 @@ class GrayFox_Settings {
 
 		add_settings_field(
 			'grayfox_widget_position',
-			__( 'Widget Position', 'grayfox' ),
+			__( 'Widget Position', 'kbfox' ),
 			array( $this, 'render_widget_position_field' ),
 			self::PAGE_SLUG,
 			'grayfox_appearance'
@@ -167,7 +167,7 @@ class GrayFox_Settings {
 
 		add_settings_field(
 			'grayfox_widget_welcome_message',
-			__( 'Welcome Message', 'grayfox' ),
+			__( 'Welcome Message', 'kbfox' ),
 			array( $this, 'render_welcome_message_field' ),
 			self::PAGE_SLUG,
 			'grayfox_appearance'
@@ -176,7 +176,7 @@ class GrayFox_Settings {
 		// --- Behavior Section ---
 		add_settings_section(
 			'grayfox_behavior',
-			__( 'Behavior', 'grayfox' ),
+			__( 'Behavior', 'kbfox' ),
 			array( $this, 'render_behavior_section' ),
 			self::PAGE_SLUG
 		);
@@ -189,7 +189,7 @@ class GrayFox_Settings {
 
 		add_settings_field(
 			'grayfox_enable_widget',
-			__( 'Enable Widget', 'grayfox' ),
+			__( 'Enable Widget', 'kbfox' ),
 			array( $this, 'render_enable_widget_field' ),
 			self::PAGE_SLUG,
 			'grayfox_behavior'
@@ -203,7 +203,7 @@ class GrayFox_Settings {
 
 		add_settings_field(
 			'grayfox_business_phone',
-			__( 'Business Phone', 'grayfox' ),
+			__( 'Business Phone', 'kbfox' ),
 			array( $this, 'render_business_phone_field' ),
 			self::PAGE_SLUG,
 			'grayfox_behavior'
@@ -212,7 +212,7 @@ class GrayFox_Settings {
 		// --- Conversation Limits Section ---
 		add_settings_section(
 			'grayfox_conversation_limits',
-			__( 'Conversation Limits & Abuse Protection', 'grayfox' ),
+			__( 'Conversation Limits & Abuse Protection', 'kbfox' ),
 			array( $this, 'render_conversation_limits_section' ),
 			self::PAGE_SLUG
 		);
@@ -225,7 +225,7 @@ class GrayFox_Settings {
 
 		add_settings_field(
 			'grayfox_session_message_limit',
-			__( 'Max messages per session', 'grayfox' ),
+			__( 'Max messages per session', 'kbfox' ),
 			array( $this, 'render_session_message_limit_field' ),
 			self::PAGE_SLUG,
 			'grayfox_conversation_limits'
@@ -239,7 +239,7 @@ class GrayFox_Settings {
 
 		add_settings_field(
 			'grayfox_ip_sessions_per_hour',
-			__( 'Max sessions per IP per hour', 'grayfox' ),
+			__( 'Max sessions per IP per hour', 'kbfox' ),
 			array( $this, 'render_ip_sessions_per_hour_field' ),
 			self::PAGE_SLUG,
 			'grayfox_conversation_limits'
@@ -253,7 +253,7 @@ class GrayFox_Settings {
 
 		add_settings_field(
 			'grayfox_ip_sessions_per_day',
-			__( 'Max sessions per IP per day', 'grayfox' ),
+			__( 'Max sessions per IP per day', 'kbfox' ),
 			array( $this, 'render_ip_sessions_per_day_field' ),
 			self::PAGE_SLUG,
 			'grayfox_conversation_limits'
@@ -268,17 +268,17 @@ class GrayFox_Settings {
 
 	/** Render LLM section description. */
 	public function render_llm_section(): void {
-		echo '<p>' . esc_html__( 'Configure your AI provider. The API key is stored encrypted and never sent to the browser.', 'grayfox' ) . '</p>';
+		echo '<p>' . esc_html__( 'Configure your AI provider. The API key is stored encrypted and never sent to the browser.', 'kbfox' ) . '</p>';
 	}
 
 	/** Render appearance section description. */
 	public function render_appearance_section(): void {
-		echo '<p>' . esc_html__( 'Customize how the chat widget looks on your site.', 'grayfox' ) . '</p>';
+		echo '<p>' . esc_html__( 'Customize how the chat widget looks on your site.', 'kbfox' ) . '</p>';
 	}
 
 	/** Render behavior section description. */
 	public function render_behavior_section(): void {
-		echo '<p>' . esc_html__( 'Control when and where the widget appears.', 'grayfox' ) . '</p>';
+		echo '<p>' . esc_html__( 'Control when and where the widget appears.', 'kbfox' ) . '</p>';
 	}
 
 	/* -----------------------------------------------------------
@@ -317,13 +317,13 @@ class GrayFox_Settings {
 				   value="<?php echo esc_attr( $masked ); ?>"
 				   class="regular-text"
 				   autocomplete="new-password"
-				   placeholder="<?php esc_attr_e( 'Enter new key to update', 'grayfox' ); ?>" />
+				   placeholder="<?php esc_attr_e( 'Enter new key to update', 'kbfox' ); ?>" />
 			<button type="button" id="grayfox-toggle-key" class="button button-secondary">
-				<?php esc_html_e( 'Show', 'grayfox' ); ?>
+				<?php esc_html_e( 'Show', 'kbfox' ); ?>
 			</button>
 		</div>
 		<p class="description">
-			<?php esc_html_e( 'Stored encrypted. Leave blank to keep existing key.', 'grayfox' ); ?>
+			<?php esc_html_e( 'Stored encrypted. Leave blank to keep existing key.', 'kbfox' ); ?>
 		</p>
 		<script>
 		(function() {
@@ -333,10 +333,10 @@ class GrayFox_Settings {
 			toggleBtn.addEventListener('click', function() {
 				if (keyField.type === 'password') {
 					keyField.type = 'text';
-					toggleBtn.textContent = '<?php echo esc_js( __( 'Hide', 'grayfox' ) ); ?>';
+					toggleBtn.textContent = '<?php echo esc_js( __( 'Hide', 'kbfox' ) ); ?>';
 				} else {
 					keyField.type = 'password';
-					toggleBtn.textContent = '<?php echo esc_js( __( 'Show', 'grayfox' ) ); ?>';
+					toggleBtn.textContent = '<?php echo esc_js( __( 'Show', 'kbfox' ) ); ?>';
 				}
 			});
 		})();
@@ -468,7 +468,7 @@ class GrayFox_Settings {
 			<?php endforeach; ?>
 		</select>
 		<button type="button" id="grayfox-test-llm" class="button button-secondary" style="margin-left:8px;">
-			<?php esc_html_e( 'Test Connection', 'grayfox' ); ?>
+			<?php esc_html_e( 'Test Connection', 'kbfox' ); ?>
 		</button>
 		<span id="grayfox-test-llm-result" style="margin-left:8px;"></span>
 		<script>
@@ -501,7 +501,7 @@ class GrayFox_Settings {
 			if (!btn) return;
 			btn.addEventListener('click', function() {
 				var result = document.getElementById('grayfox-test-llm-result');
-				result.textContent = '<?php echo esc_js( __( 'Testing...', 'grayfox' ) ); ?>';
+				result.textContent = '<?php echo esc_js( __( 'Testing...', 'kbfox' ) ); ?>';
 				result.style.color = '#666';
 				btn.disabled = true;
 
@@ -514,16 +514,16 @@ class GrayFox_Settings {
 					.then(function(resp) {
 						btn.disabled = false;
 						if (resp.success) {
-							result.textContent = resp.data.message || '<?php echo esc_js( __( 'Connected!', 'grayfox' ) ); ?>';
+							result.textContent = resp.data.message || '<?php echo esc_js( __( 'Connected!', 'kbfox' ) ); ?>';
 							result.style.color = 'green';
 						} else {
-							result.textContent = resp.data || '<?php echo esc_js( __( 'Connection failed.', 'grayfox' ) ); ?>';
+							result.textContent = resp.data || '<?php echo esc_js( __( 'Connection failed.', 'kbfox' ) ); ?>';
 							result.style.color = 'red';
 						}
 					})
 					.catch(function() {
 						btn.disabled = false;
-						result.textContent = '<?php echo esc_js( __( 'Network error.', 'grayfox' ) ); ?>';
+						result.textContent = '<?php echo esc_js( __( 'Network error.', 'kbfox' ) ); ?>';
 						result.style.color = 'red';
 					});
 			});
@@ -545,7 +545,7 @@ class GrayFox_Settings {
 			   max="32000"
 			   step="1" />
 		<p class="description">
-			<?php esc_html_e( 'Maximum tokens the model may generate per response. Required by Anthropic; applied to all providers.', 'grayfox' ); ?>
+			<?php esc_html_e( 'Maximum tokens the model may generate per response. Required by Anthropic; applied to all providers.', 'kbfox' ); ?>
 		</p>
 		<?php
 	}
@@ -589,10 +589,10 @@ class GrayFox_Settings {
 		?>
 		<select id="grayfox_widget_position" name="grayfox_widget_position">
 			<option value="bottom-right" <?php selected( $value, 'bottom-right' ); ?>>
-				<?php esc_html_e( 'Bottom Right', 'grayfox' ); ?>
+				<?php esc_html_e( 'Bottom Right', 'kbfox' ); ?>
 			</option>
 			<option value="bottom-left" <?php selected( $value, 'bottom-left' ); ?>>
-				<?php esc_html_e( 'Bottom Left', 'grayfox' ); ?>
+				<?php esc_html_e( 'Bottom Left', 'kbfox' ); ?>
 			</option>
 		</select>
 		<?php
@@ -619,7 +619,7 @@ class GrayFox_Settings {
 				   name="grayfox_enable_widget"
 				   value="1"
 				   <?php checked( $value ); ?> />
-			<?php esc_html_e( 'Show floating chat widget on all pages', 'grayfox' ); ?>
+			<?php esc_html_e( 'Show floating chat widget on all pages', 'kbfox' ); ?>
 		</label>
 		<?php
 	}
@@ -635,14 +635,14 @@ class GrayFox_Settings {
 			   class="regular-text"
 			   placeholder="+1 (555) 000-0000" />
 		<p class="description">
-			<?php esc_html_e( 'Displayed in the chat when a visitor reaches the session message limit.', 'grayfox' ); ?>
+			<?php esc_html_e( 'Displayed in the chat when a visitor reaches the session message limit.', 'kbfox' ); ?>
 		</p>
 		<?php
 	}
 
 	/** Render conversation limits section description. */
 	public function render_conversation_limits_section(): void {
-		echo '<p>' . esc_html__( 'Control how many messages a visitor can send and how many chat sessions are allowed per IP address. These settings help prevent abuse and excessive API usage.', 'grayfox' ) . '</p>';
+		echo '<p>' . esc_html__( 'Control how many messages a visitor can send and how many chat sessions are allowed per IP address. These settings help prevent abuse and excessive API usage.', 'kbfox' ) . '</p>';
 	}
 
 	/** Render session message limit field. */
@@ -659,10 +659,10 @@ class GrayFox_Settings {
 			   max="50"
 			   step="1" />
 		<a href="#" class="grayfox-restore-default" data-target="grayfox_session_message_limit" data-default="<?php echo esc_attr( $default ); ?>" style="margin-left:8px;">
-			<?php esc_html_e( 'Restore default', 'grayfox' ); ?>
+			<?php esc_html_e( 'Restore default', 'kbfox' ); ?>
 		</a>
 		<p class="description">
-			<?php esc_html_e( 'Maximum number of messages (user + assistant) allowed per chat session. Range: 5–50. Default: 21.', 'grayfox' ); ?>
+			<?php esc_html_e( 'Maximum number of messages (user + assistant) allowed per chat session. Range: 5–50. Default: 21.', 'kbfox' ); ?>
 		</p>
 		<?php
 	}
@@ -681,10 +681,10 @@ class GrayFox_Settings {
 			   max="10"
 			   step="1" />
 		<a href="#" class="grayfox-restore-default" data-target="grayfox_ip_sessions_per_hour" data-default="<?php echo esc_attr( $default ); ?>" style="margin-left:8px;">
-			<?php esc_html_e( 'Restore default', 'grayfox' ); ?>
+			<?php esc_html_e( 'Restore default', 'kbfox' ); ?>
 		</a>
 		<p class="description">
-			<?php esc_html_e( 'Maximum new chat sessions an IP address may start within one hour. Range: 1–10. Default: 5.', 'grayfox' ); ?>
+			<?php esc_html_e( 'Maximum new chat sessions an IP address may start within one hour. Range: 1–10. Default: 5.', 'kbfox' ); ?>
 		</p>
 		<?php
 	}
@@ -703,10 +703,10 @@ class GrayFox_Settings {
 			   max="25"
 			   step="1" />
 		<a href="#" class="grayfox-restore-default" data-target="grayfox_ip_sessions_per_day" data-default="<?php echo esc_attr( $default ); ?>" style="margin-left:8px;">
-			<?php esc_html_e( 'Restore default', 'grayfox' ); ?>
+			<?php esc_html_e( 'Restore default', 'kbfox' ); ?>
 		</a>
 		<p class="description">
-			<?php esc_html_e( 'Maximum new chat sessions an IP address may start within 24 hours. Range: 1–25. Default: 10.', 'grayfox' ); ?>
+			<?php esc_html_e( 'Maximum new chat sessions an IP address may start within 24 hours. Range: 1–25. Default: 10.', 'kbfox' ); ?>
 		</p>
 		<script>
 		(function() {
@@ -857,7 +857,7 @@ class GrayFox_Settings {
 		check_ajax_referer( 'grayfox_test_llm' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( __( 'Unauthorized.', 'grayfox' ) );
+			wp_send_json_error( __( 'Unauthorized.', 'kbfox' ) );
 		}
 
 		$provider      = get_option( 'grayfox_llm_provider', 'openai' );
@@ -865,16 +865,16 @@ class GrayFox_Settings {
 		$model         = get_option( 'grayfox_llm_model', '' );
 
 		if ( empty( $encrypted_key ) ) {
-			wp_send_json_error( __( 'No API key saved. Save your settings first.', 'grayfox' ) );
+			wp_send_json_error( __( 'No API key saved. Save your settings first.', 'kbfox' ) );
 		}
 
 		$api_key = grayfox_decrypt( $encrypted_key );
 		if ( empty( $api_key ) ) {
-			wp_send_json_error( __( 'Failed to decrypt API key.', 'grayfox' ) );
+			wp_send_json_error( __( 'Failed to decrypt API key.', 'kbfox' ) );
 		}
 
 		if ( empty( $model ) ) {
-			wp_send_json_error( __( 'No model configured. Enter a model name and save first.', 'grayfox' ) );
+			wp_send_json_error( __( 'No model configured. Enter a model name and save first.', 'kbfox' ) );
 		}
 
 		$error = $this->probe_llm_provider( $provider, $api_key, $model );
@@ -883,7 +883,7 @@ class GrayFox_Settings {
 			wp_send_json_success( array(
 				'message' => sprintf(
 					/* translators: 1: provider name, 2: model name */
-					__( 'Connected! Provider: %1$s, Model: %2$s', 'grayfox' ),
+					__( 'Connected! Provider: %1$s, Model: %2$s', 'kbfox' ),
 					esc_html( $provider ),
 					esc_html( $model )
 				),
@@ -972,7 +972,7 @@ class GrayFox_Settings {
 				break;
 
 			default:
-				return __( 'Unknown provider.', 'grayfox' );
+				return __( 'Unknown provider.', 'kbfox' );
 		}
 
 		if ( is_wp_error( $response ) ) {
@@ -988,7 +988,7 @@ class GrayFox_Settings {
 		$msg  = $body['error']['message'] ?? $body['message'] ?? wp_remote_retrieve_response_message( $response );
 		return sprintf(
 			/* translators: 1: HTTP code, 2: error message */
-			__( 'Error %1$d: %2$s', 'grayfox' ),
+			__( 'Error %1$d: %2$s', 'kbfox' ),
 			$code,
 			$msg
 		);

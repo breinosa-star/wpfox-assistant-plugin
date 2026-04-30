@@ -1,6 +1,6 @@
 {
-    "name": "grayfox/grayfox-plugin",
-    "description": "GrayFox WordPress Plugin",
+    "name": "grayfox/kbfox",
+    "description": "KBFox WordPress Plugin",
     "type": "wordpress-plugin",
     "require": {
         "smalot/pdfparser": "^2.0",

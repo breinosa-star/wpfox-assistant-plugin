@@ -5,8 +5,8 @@
  * and a natural path to a GrayFox plan.
  *
  * KB context (from current install):
- *   - Product: WordPress plugin — AI chat widget, knowledge base, site builder,
- *              theme builder
+ *   - Product: WordPress plugin — AI chat widget, knowledge base
+ *   - Paid features (grayfox-pro): site builder, theme builder
  *   - Plans: Trial (5 docs), Starter (20 docs), Growth, Pro (unlimited)
  */
 

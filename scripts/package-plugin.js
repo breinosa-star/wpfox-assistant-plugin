@@ -3,7 +3,7 @@
  * GrayFox Plugin Packager
  *
  * Validates the plugin then packages it into a distributable zip.
- * Output: ../builds/grayfox-plugin-{version}.zip
+ * Output: ../builds/kbfox-{version}.zip
  *
  * Usage:
  *   node scripts/package-plugin.js           — build zip
@@ -27,7 +27,7 @@ const path         = require('path');
 
 const DRY_RUN     = process.argv.includes('--dry-run');
 const PLUGIN_DIR  = path.join(__dirname, '..');
-const PLUGIN_NAME = 'grayfox-plugin';
+const PLUGIN_NAME = 'kbfox';
 const BUILDS_DIR  = path.join(PLUGIN_DIR, '..', 'builds');
 
 const pkg     = JSON.parse(fs.readFileSync(path.join(PLUGIN_DIR, 'package.json'), 'utf8'));
@@ -43,7 +43,7 @@ function section(t) { console.log(`\n── ${t} ──`); }
 // ── Header ────────────────────────────────────────────────────────────────────
 
 console.log(`\nGrayFox Plugin Packager v${VERSION}`);
-console.log('Packages: knowledge-base, chatbot, theme-builder, site-builder');
+console.log('Packages: knowledge-base, chatbot');
 
 // ── Validate readme.txt ───────────────────────────────────────────────────────
 
@@ -88,7 +88,7 @@ else           fail('readme.txt Stable tag not found');
 
 section('Validating version consistency');
 
-const mainPlugin   = fs.readFileSync(path.join(PLUGIN_DIR, 'grayfox.php'), 'utf8');
+const mainPlugin   = fs.readFileSync(path.join(PLUGIN_DIR, 'kbfox.php'), 'utf8');
 const versionMatch = mainPlugin.match(/^\s*\*\s*Version:\s*(.+)$/m);
 const pluginVer    = versionMatch ? versionMatch[1].trim() : null;
 
@@ -121,7 +121,7 @@ if (tagsMatch) {
 
 section('Checking required files');
 
-const required = [ 'uninstall.php', 'grayfox.php', 'readme.txt' ];
+const required = [ 'uninstall.php', 'kbfox.php', 'readme.txt' ];
 for (const f of required) {
 	if (fs.existsSync(path.join(PLUGIN_DIR, f))) pass(`${f} exists`);
 	else                                          fail(`${f} missing`);
@@ -132,6 +132,15 @@ for (const f of required) {
 section('Scanning for paid-feature code');
 
 const PAID_CLASSES = [
+	'GrayFox_ThemeBuilder',
+	'GrayFox_SiteBuilder',
+	'GrayFox_Audit',
+	'GrayFox_Admin_Pro',
+	'GrayFox_Pro_Plugin',
+	'class-grayfox-theme-builder',
+	'class-grayfox-site-builder',
+	'class-grayfox-audit',
+	'class-grayfox-admin-pro',
 	'GrayFox_Google',
 	'GrayFox_Booking',
 	'GrayFox_Sheets',
@@ -157,7 +166,7 @@ function scanDir(dir) {
 const phpFiles = [
 	...scanDir(path.join(PLUGIN_DIR, 'includes')),
 	...scanDir(path.join(PLUGIN_DIR, 'templates')),
-	path.join(PLUGIN_DIR, 'grayfox.php'),
+	path.join(PLUGIN_DIR, 'kbfox.php'),
 ];
 
 let paidFound = false;

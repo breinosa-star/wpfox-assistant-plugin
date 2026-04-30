@@ -1,5 +1,0 @@
-Revision type: {{REVISION_TYPE}}
-Preset direction: {{PRESET_DIRECTION}}
-User's additional context: {{USER_HINT}}
-
-Write a single precise directive (2–3 sentences) telling a web professional exactly what to change and how. Be specific about tone, length, audience, focus, or visual treatment based on all inputs provided. If the user hint is empty, base the directive entirely on the preset direction.

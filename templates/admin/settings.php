@@ -22,7 +22,7 @@ if ( ! current_user_can( 'manage_options' ) ) {
 		<?php
 		settings_fields( GrayFox_Settings::OPTION_GROUP );
 		do_settings_sections( GrayFox_Settings::PAGE_SLUG );
-		submit_button( __( 'Save Settings', 'grayfox' ) );
+		submit_button( __( 'Save Settings', 'kbfox' ) );
 		?>
 	</form>
 

@@ -2,7 +2,7 @@
 /**
  * Package the plugin into a distributable zip.
  *
- * Output: ../builds/grayfox-plugin-{version}.zip
+ * Output: ../builds/kbfox-{version}.zip
  *
  * Excludes all development files — only production assets are included.
  * Requires the system `zip` command (available on macOS and Linux).
@@ -20,7 +20,7 @@ const path         = require('path');
 
 const PLUGIN_DIR = path.join(__dirname, '..');
 const BUILDS_DIR = path.join(PLUGIN_DIR, '..', 'builds');
-const PLUGIN_NAME = 'grayfox-plugin';
+const PLUGIN_NAME = 'kbfox';
 
 // Read version from package.json.
 const pkg     = JSON.parse(fs.readFileSync(path.join(PLUGIN_DIR, 'package.json'), 'utf8'));
@@ -67,7 +67,7 @@ if (fs.existsSync(outFile)) {
 
 // Build the zip command.
 // We cd to the parent of the plugin directory and zip the plugin folder,
-// so the zip extracts as grayfox-plugin/ (standard WP plugin structure).
+// so the zip extracts as kbfox/ (standard WP plugin structure).
 const parentDir   = path.dirname(PLUGIN_DIR);
 const excludeArgs = EXCLUDES
 	.map(e => `--exclude "${PLUGIN_NAME}/${e}/*" --exclude "${PLUGIN_NAME}/${e}"`)

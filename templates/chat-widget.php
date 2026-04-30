@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<!-- Chat bubble trigger button -->
 	<button id="grayfox-chat-trigger"
 			class="grayfox-trigger"
-			aria-label="<?php esc_attr_e( 'Open chat', 'grayfox' ); ?>">
+			aria-label="<?php esc_attr_e( 'Open chat', 'kbfox' ); ?>">
 		<svg class="grayfox-trigger-icon grayfox-icon-chat" viewBox="0 0 24 24" width="28" height="28" fill="white" xmlns="http://www.w3.org/2000/svg">
 			<path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.17L4 17.17V4h16v12zM7 9h2v2H7V9zm4 0h2v2h-2V9zm4 0h2v2h-2V9z"/>
 		</svg>
@@ -32,11 +32,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 		 class="grayfox-window"
 		 style="display:none"
 		 role="dialog"
-		 aria-label="<?php esc_attr_e( 'Chat window', 'grayfox' ); ?>">
+		 aria-label="<?php esc_attr_e( 'Chat window', 'kbfox' ); ?>">
 
 		<div class="grayfox-header">
 			<h3 class="grayfox-title"><?php echo esc_html( get_option( 'grayfox_widget_name', 'Chat with us' ) ); ?></h3>
-			<button class="grayfox-close" aria-label="<?php esc_attr_e( 'Close chat', 'grayfox' ); ?>">&times;</button>
+			<button class="grayfox-close" aria-label="<?php esc_attr_e( 'Close chat', 'kbfox' ); ?>">&times;</button>
 		</div>
 
 		<div id="<?php echo esc_attr( wp_unique_id( 'grayfox-messages-' ) ); ?>"
@@ -46,11 +46,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 		<div class="grayfox-input-area">
 			<textarea id="grayfox-input"
-					  placeholder="<?php esc_attr_e( 'Type your message...', 'grayfox' ); ?>"
+					  placeholder="<?php esc_attr_e( 'Type your message...', 'kbfox' ); ?>"
 					  rows="1"
-					  aria-label="<?php esc_attr_e( 'Message input', 'grayfox' ); ?>"></textarea>
+					  aria-label="<?php esc_attr_e( 'Message input', 'kbfox' ); ?>"></textarea>
 			<button id="grayfox-send"
-					aria-label="<?php esc_attr_e( 'Send message', 'grayfox' ); ?>">
+					aria-label="<?php esc_attr_e( 'Send message', 'kbfox' ); ?>">
 				<svg viewBox="0 0 24 24" width="20" height="20" fill="white" xmlns="http://www.w3.org/2000/svg">
 					<path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
 				</svg>

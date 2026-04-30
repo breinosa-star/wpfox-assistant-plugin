@@ -54,19 +54,6 @@ class GrayFox_Plugin {
 			update_option( 'grayfox_db_version', '1.1.0' );
 		}
 
-		require_once GRAYFOX_PATH . 'includes/class-grayfox-site-builder-tools.php';
-		require_once GRAYFOX_PATH . 'includes/class-grayfox-site-builder.php';
-		require_once GRAYFOX_PATH . 'includes/class-grayfox-audit.php';
-
-		// Theme Builder modules — load helpers first, then pattern groups, then main class.
-		foreach ( glob( GRAYFOX_PATH . 'includes/theme-builder/class-tb-*.php' ) as $tb_file ) {
-			require_once $tb_file;
-		}
-		foreach ( glob( GRAYFOX_PATH . 'includes/theme-builder/patterns/class-tb-patterns-*.php' ) as $tb_pattern_file ) {
-			require_once $tb_pattern_file;
-		}
-		require_once GRAYFOX_PATH . 'includes/class-grayfox-theme-builder.php';
-
 		$db        = new GrayFox_DB();
 		$settings  = new GrayFox_Settings();
 		$widget    = new GrayFox_Widget();
@@ -74,8 +61,6 @@ class GrayFox_Plugin {
 		$admin     = new GrayFox_Admin();
 		$chat      = new GrayFox_Chat();
 		$rag       = GrayFox_RAG::get_instance();
-		$site_builder  = GrayFox_SiteBuilder::get_instance();
-		$audit         = GrayFox_Audit::get_instance();
 
 		$settings->register( $this->loader );
 		$widget->register( $this->loader );
@@ -83,11 +68,6 @@ class GrayFox_Plugin {
 		$admin->register( $this->loader );
 		$chat->register( $this->loader );
 		$rag->register( $this->loader );
-		$site_builder->register( $this->loader );
-		$audit->register( $this->loader );
-
-		$theme_builder = GrayFox_ThemeBuilder::get_instance();
-		$theme_builder->register( $this->loader );
 
 		$this->loader->run();
 	}

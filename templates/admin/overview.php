@@ -75,80 +75,80 @@ if ( $llm_configured && ! empty( $llm_model ) ) {
 }
 ?>
 <div class="wrap grayfox-admin-wrap">
-	<h1><?php esc_html_e( 'GrayFox AI — Overview', 'grayfox' ); ?></h1>
+	<h1><?php esc_html_e( 'KBFox — Overview', 'kbfox' ); ?></h1>
 
 	<div class="grayfox-stats-grid">
 
 		<!-- Chatbot Status -->
 		<div class="grayfox-stat-card">
-			<h3><?php esc_html_e( 'Widget Status', 'grayfox' ); ?></h3>
+			<h3><?php esc_html_e( 'Widget Status', 'kbfox' ); ?></h3>
 			<?php if ( $widget_enabled ) : ?>
-				<span class="grayfox-badge grayfox-badge--success"><?php esc_html_e( 'Enabled', 'grayfox' ); ?></span>
+				<span class="grayfox-badge grayfox-badge--success"><?php esc_html_e( 'Enabled', 'kbfox' ); ?></span>
 			<?php else : ?>
-				<span class="grayfox-badge grayfox-badge--warning"><?php esc_html_e( 'Disabled', 'grayfox' ); ?></span>
+				<span class="grayfox-badge grayfox-badge--warning"><?php esc_html_e( 'Disabled', 'kbfox' ); ?></span>
 			<?php endif; ?>
 		</div>
 
 		<!-- Conversations (7 days) -->
 		<div class="grayfox-stat-card">
-			<h3><?php esc_html_e( 'Conversations (last 7 days)', 'grayfox' ); ?></h3>
+			<h3><?php esc_html_e( 'Conversations (last 7 days)', 'kbfox' ); ?></h3>
 			<p class="grayfox-stat-number"><?php echo esc_html( number_format_i18n( $conv_count_7d ) ); ?></p>
 			<p>
 				<a href="<?php echo esc_url( admin_url( 'admin.php?page=grayfox-conversations' ) ); ?>">
-					<?php esc_html_e( 'View all conversations', 'grayfox' ); ?>
+					<?php esc_html_e( 'View all conversations', 'kbfox' ); ?>
 				</a>
 			</p>
 		</div>
 
 		<!-- Knowledge Base -->
 		<div class="grayfox-stat-card">
-			<h3><?php esc_html_e( 'Knowledge Base', 'grayfox' ); ?></h3>
+			<h3><?php esc_html_e( 'Knowledge Base', 'kbfox' ); ?></h3>
 			<p class="grayfox-stat-number">
 				<?php
 				/* translators: %d: number of documents */
-				printf( esc_html__( '%d document(s)', 'grayfox' ), absint( $doc_count ) );
+				printf( esc_html__( '%d document(s)', 'kbfox' ), absint( $doc_count ) );
 				?>
 			</p>
 			<p>
 				<a href="<?php echo esc_url( admin_url( 'admin.php?page=grayfox-knowledge-base' ) ); ?>">
-					<?php esc_html_e( 'Manage knowledge base', 'grayfox' ); ?>
+					<?php esc_html_e( 'Manage knowledge base', 'kbfox' ); ?>
 				</a>
 			</p>
 		</div>
 
 		<!-- LLM Usage (this month) -->
 		<div class="grayfox-stat-card">
-			<h3><?php esc_html_e( 'LLM Usage (this month)', 'grayfox' ); ?></h3>
+			<h3><?php esc_html_e( 'LLM Usage (this month)', 'kbfox' ); ?></h3>
 			<?php if ( ! $llm_configured ) : ?>
-				<span class="grayfox-badge grayfox-badge--warning"><?php esc_html_e( 'No LLM configured', 'grayfox' ); ?></span>
+				<span class="grayfox-badge grayfox-badge--warning"><?php esc_html_e( 'No LLM configured', 'kbfox' ); ?></span>
 				<p>
 					<a href="<?php echo esc_url( admin_url( 'admin.php?page=grayfox-settings' ) ); ?>">
-						<?php esc_html_e( 'Configure LLM provider', 'grayfox' ); ?>
+						<?php esc_html_e( 'Configure LLM provider', 'kbfox' ); ?>
 					</a>
 				</p>
 			<?php elseif ( null === $llm_usage ) : ?>
-				<span class="grayfox-badge grayfox-badge--warning"><?php esc_html_e( 'No model selected', 'grayfox' ); ?></span>
+				<span class="grayfox-badge grayfox-badge--warning"><?php esc_html_e( 'No model selected', 'kbfox' ); ?></span>
 			<?php else : ?>
 				<p>
-					<?php esc_html_e( 'Provider:', 'grayfox' ); ?>
+					<?php esc_html_e( 'Provider:', 'kbfox' ); ?>
 					<strong><?php echo esc_html( ucfirst( $llm_provider ) ); ?></strong>
 					&nbsp;|&nbsp;
-					<?php esc_html_e( 'Model:', 'grayfox' ); ?>
+					<?php esc_html_e( 'Model:', 'kbfox' ); ?>
 					<strong><?php echo esc_html( $llm_model ); ?></strong>
 				</p>
 				<p>
-					<?php esc_html_e( 'Est. input tokens:', 'grayfox' ); ?>
+					<?php esc_html_e( 'Est. input tokens:', 'kbfox' ); ?>
 					<strong><?php echo esc_html( number_format_i18n( $llm_usage['tokens_input'] ) ); ?></strong>
 					<span class="grayfox-muted">(±20%)</span>
 				</p>
 				<p>
-					<?php esc_html_e( 'Est. output tokens:', 'grayfox' ); ?>
+					<?php esc_html_e( 'Est. output tokens:', 'kbfox' ); ?>
 					<strong><?php echo esc_html( number_format_i18n( $llm_usage['tokens_output'] ) ); ?></strong>
 					<span class="grayfox-muted">(±20%)</span>
 				</p>
 				<?php if ( null !== $llm_usage['cost_est'] ) : ?>
 					<p>
-						<?php esc_html_e( 'Est. cost:', 'grayfox' ); ?>
+						<?php esc_html_e( 'Est. cost:', 'kbfox' ); ?>
 						<strong>
 							$<?php echo esc_html( number_format( $llm_usage['cost_est'], 4 ) ); ?>
 						</strong>
@@ -159,18 +159,18 @@ if ( $llm_configured && ! empty( $llm_model ) ) {
 							<?php
 							printf(
 								/* translators: %s: pricing verification date */
-								esc_html__( 'Prices verified %s. Estimates only — see provider for actual usage.', 'grayfox' ),
+								esc_html__( 'Prices verified %s. Estimates only — see provider for actual usage.', 'kbfox' ),
 								esc_html( $llm_usage['pricing']['verified_date'] )
 							);
 							?>
 						</p>
 					<?php endif; ?>
 				<?php else : ?>
-					<p class="grayfox-muted"><?php esc_html_e( 'Pricing unavailable for this model.', 'grayfox' ); ?></p>
+					<p class="grayfox-muted"><?php esc_html_e( 'Pricing unavailable for this model.', 'kbfox' ); ?></p>
 				<?php endif; ?>
 				<p>
 					<a href="<?php echo esc_url( $llm_usage['dashboard_url'] ); ?>" target="_blank" rel="noopener noreferrer">
-						<?php esc_html_e( 'View actual usage →', 'grayfox' ); ?>
+						<?php esc_html_e( 'View actual usage →', 'kbfox' ); ?>
 					</a>
 				</p>
 			<?php endif; ?>
@@ -179,32 +179,32 @@ if ( $llm_configured && ! empty( $llm_model ) ) {
 	</div><!-- .grayfox-stats-grid -->
 
 	<div class="grayfox-quick-links">
-		<h2><?php esc_html_e( 'Quick Links', 'grayfox' ); ?></h2>
+		<h2><?php esc_html_e( 'Quick Links', 'kbfox' ); ?></h2>
 		<p>
 			<a href="<?php echo esc_url( admin_url( 'admin.php?page=grayfox-settings' ) ); ?>" class="button button-primary">
-				<?php esc_html_e( 'Settings', 'grayfox' ); ?>
+				<?php esc_html_e( 'Settings', 'kbfox' ); ?>
 			</a>
 			<a href="<?php echo esc_url( admin_url( 'admin.php?page=grayfox-knowledge-base' ) ); ?>" class="button button-secondary">
-				<?php esc_html_e( 'Knowledge Base', 'grayfox' ); ?>
+				<?php esc_html_e( 'Knowledge Base', 'kbfox' ); ?>
 			</a>
 			<a href="<?php echo esc_url( admin_url( 'admin.php?page=grayfox-conversations' ) ); ?>" class="button button-secondary">
-				<?php esc_html_e( 'Conversations', 'grayfox' ); ?>
+				<?php esc_html_e( 'Conversations', 'kbfox' ); ?>
 			</a>
 		</p>
 	</div>
 
 	<div class="grayfox-pro-features" style="margin-top:24px;padding:20px 24px;background:#f9f9f9;border:1px solid #ddd;border-radius:4px;opacity:0.75;">
-		<h2 style="margin-top:0;color:#555;"><?php esc_html_e( 'Pro Features', 'grayfox' ); ?></h2>
-		<p style="color:#666;"><?php esc_html_e( 'Extend GrayFox with the paid add-on:', 'grayfox' ); ?></p>
+		<h2 style="margin-top:0;color:#555;"><?php esc_html_e( 'Pro Features', 'kbfox' ); ?></h2>
+		<p style="color:#666;"><?php esc_html_e( 'Extend KBFox with the GrayFox Pro add-on:', 'kbfox' ); ?></p>
 		<ul style="color:#666;margin-left:1.5em;list-style:disc;">
-			<li><?php esc_html_e( 'Google Connect — OAuth integration with Google Calendar and Google Drive', 'grayfox' ); ?></li>
-			<li><?php esc_html_e( 'Appointments — AI-assisted booking system with calendar sync', 'grayfox' ); ?></li>
-			<li><?php esc_html_e( 'Drive Sync — automatically import Google Drive documents into your knowledge base', 'grayfox' ); ?></li>
-			<li><?php esc_html_e( 'Analytics — export conversation reports to Google Sheets on a schedule', 'grayfox' ); ?></li>
+			<li><?php esc_html_e( 'Google Connect — OAuth integration with Google Calendar and Google Drive', 'kbfox' ); ?></li>
+			<li><?php esc_html_e( 'Appointments — AI-assisted booking system with calendar sync', 'kbfox' ); ?></li>
+			<li><?php esc_html_e( 'Drive Sync — automatically import Google Drive documents into your knowledge base', 'kbfox' ); ?></li>
+			<li><?php esc_html_e( 'Analytics — export conversation reports to Google Sheets on a schedule', 'kbfox' ); ?></li>
 		</ul>
 		<p style="margin-top:16px;">
-			<a href="https://grayfox.io" target="_blank" rel="noopener noreferrer" class="button button-primary">
-				<?php esc_html_e( 'Get the Pro add-on at grayfox.io →', 'grayfox' ); ?>
+			<a href="https://plugins.grayfoxdc.com" target="_blank" rel="noopener noreferrer" class="button button-primary">
+				<?php esc_html_e( 'Get the Pro add-on at plugins.grayfoxdc.com →', 'kbfox' ); ?>
 			</a>
 		</p>
 	</div>

@@ -145,10 +145,10 @@ class GrayFox_Chat {
 				$last_active = strtotime( $ttl_row->last_active_at );
 				if ( ( time() - $last_active ) > 86400 ) {
 					$phone = get_option( 'grayfox_business_phone', '' );
-					$msg   = __( 'Your session has expired after 24 hours of inactivity. Please start a new conversation.', 'grayfox' );
+					$msg   = __( 'Your session has expired after 24 hours of inactivity. Please start a new conversation.', 'kbfox' );
 					if ( $phone ) {
 						/* translators: %s: business phone number */
-						$msg .= ' ' . sprintf( __( 'You can also reach us at %s.', 'grayfox' ), esc_html( $phone ) );
+						$msg .= ' ' . sprintf( __( 'You can also reach us at %s.', 'kbfox' ), esc_html( $phone ) );
 					}
 					wp_send_json_error( array( 'session_expired' => true, 'message' => $msg ), 200 );
 				}
@@ -167,10 +167,10 @@ class GrayFox_Chat {
 
 			if ( $h_count >= $h_limit || $d_count >= $d_limit ) {
 				$phone = get_option( 'grayfox_business_phone', '' );
-				$msg   = __( 'Too many chat sessions from your location. Please try again later.', 'grayfox' );
+				$msg   = __( 'Too many chat sessions from your location. Please try again later.', 'kbfox' );
 				if ( $phone ) {
 					/* translators: %s: business phone number */
-					$msg .= ' ' . sprintf( __( 'You can also reach us at %s.', 'grayfox' ), esc_html( $phone ) );
+					$msg .= ' ' . sprintf( __( 'You can also reach us at %s.', 'kbfox' ), esc_html( $phone ) );
 				}
 				wp_send_json_error( array( 'rate_limited' => true, 'message' => $msg ), 429 );
 			}
@@ -229,20 +229,20 @@ class GrayFox_Chat {
 
 		if ( $msg_count >= $msg_limit ) {
 			$phone = get_option( 'grayfox_business_phone', '' );
-			$limit_msg = __( 'You have reached the maximum number of messages for this session. Please start a new conversation or contact us directly.', 'grayfox' );
+			$limit_msg = __( 'You have reached the maximum number of messages for this session. Please start a new conversation or contact us directly.', 'kbfox' );
 			if ( $phone ) {
 				/* translators: %s: business phone number */
-				$limit_msg .= ' ' . sprintf( __( 'Phone: %s', 'grayfox' ), esc_html( $phone ) );
+				$limit_msg .= ' ' . sprintf( __( 'Phone: %s', 'kbfox' ), esc_html( $phone ) );
 			}
 			wp_send_json_error( array( 'limit_reached' => true, 'message' => $limit_msg ), 200 );
 		}
 
 		if ( $msg_count === ( $msg_limit - 2 ) ) {
 			$phone = get_option( 'grayfox_business_phone', '' );
-			$warm_down_instruction = __( 'IMPORTANT: This is one of the last messages in this session. Wrap up the conversation naturally and encourage the user to contact the business directly if they need further assistance.', 'grayfox' );
+			$warm_down_instruction = __( 'IMPORTANT: This is one of the last messages in this session. Wrap up the conversation naturally and encourage the user to contact the business directly if they need further assistance.', 'kbfox' );
 			if ( $phone ) {
 				/* translators: %s: business phone number */
-				$warm_down_instruction .= ' ' . sprintf( __( 'Mention the business phone: %s.', 'grayfox' ), esc_html( $phone ) );
+				$warm_down_instruction .= ' ' . sprintf( __( 'Mention the business phone: %s.', 'kbfox' ), esc_html( $phone ) );
 			}
 		}
 
@@ -265,7 +265,7 @@ class GrayFox_Chat {
 			$warm_down_instruction = 'IMPORTANT: This conversation has drifted significantly off-topic. Gently steer back to how you can help the customer with our business, and encourage them to contact us directly for anything further.';
 			if ( $phone ) {
 				/* translators: %s: business phone number */
-				$warm_down_instruction .= ' ' . sprintf( __( 'Mention the business phone: %s.', 'grayfox' ), esc_html( $phone ) );
+				$warm_down_instruction .= ' ' . sprintf( __( 'Mention the business phone: %s.', 'kbfox' ), esc_html( $phone ) );
 			}
 		}
 
@@ -314,7 +314,7 @@ class GrayFox_Chat {
 		$model         = get_option( 'grayfox_llm_model', '' );
 
 		if ( empty( $api_key ) || empty( $model ) ) {
-			wp_send_json_error( array( 'message' => __( 'The AI assistant is not configured. Please contact the site administrator.', 'grayfox' ) ), 503 );
+			wp_send_json_error( array( 'message' => __( 'The AI assistant is not configured. Please contact the site administrator.', 'kbfox' ) ), 503 );
 		}
 
 		// 7a. Build initial messages — no pre-fetched KB; LLM fetches via tools.
