@@ -210,6 +210,13 @@ class GrayFox_Chat {
 			$conversation_id = (int) $wpdb->insert_id;
 			$msg_count       = 0;
 
+			/**
+			 * Fires when a new visitor conversation is created.
+			 *
+			 * @since 1.0.0
+			 * @param int    $conversation_id DB row ID of the new conversation.
+			 * @param string $session_id      Browser session identifier tied to this conversation.
+			 */
 			do_action( 'grayfox_conversation_started', $conversation_id, $session_id );
 		} else {
 			$conversation_id = (int) $conversation->id;
@@ -328,6 +335,17 @@ class GrayFox_Chat {
 			: '';
 
 		$messages = $llm->build_messages( '', $history, $clean_message, $warm_down_instruction, $welcome_message, $captured_email );
+		/**
+		 * Filters the LLM message array before it enters the agentic loop.
+		 *
+		 * Each element is an associative array with 'role' (system|user|assistant)
+		 * and 'content' (string). Modifications here affect every turn of the
+		 * conversation — inject instructions, rewrite content, or append context.
+		 *
+		 * @since 1.0.0
+		 * @param array $messages        Ordered message array ready for the LLM.
+		 * @param int   $conversation_id DB row ID of the current conversation.
+		 */
 		$messages = apply_filters( 'grayfox_chat_messages', $messages, $conversation_id );
 
 		// 7b. Get tool definitions.
@@ -544,6 +562,14 @@ class GrayFox_Chat {
 
 		}
 
+		/**
+		 * Fires after the LLM response has been saved to the database and
+		 * streamed to the visitor, before the SSE done event is sent.
+		 *
+		 * @since 1.0.0
+		 * @param int    $conversation_id DB row ID of the current conversation.
+		 * @param string $full_response   Complete assistant response text.
+		 */
 		do_action( 'grayfox_chat_response', $conversation_id, $full_response );
 
 		// 10. Send done event.

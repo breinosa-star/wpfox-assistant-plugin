@@ -243,6 +243,16 @@ class GrayFox_Tools {
 		self::register( new GrayFox_Tool_Search_KB() );
 		self::register( new GrayFox_Tool_Capture_Email() );
 
+		/**
+		 * Fires after built-in tools are registered, allowing external plugins
+		 * to add their own tools to the LLM's function-calling toolkit.
+		 *
+		 * Use GrayFox_Tools::register() inside this hook to add a tool.
+		 * Each tool must extend the GrayFox_Tool abstract class.
+		 *
+		 * @since 1.0.0
+		 * @param class-string<GrayFox_Tools> $tools_class The GrayFox_Tools class name.
+		 */
 		do_action( 'grayfox_register_tools', GrayFox_Tools::class );
 	}
 

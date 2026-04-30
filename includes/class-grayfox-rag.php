@@ -224,6 +224,14 @@ class GrayFox_RAG {
 				set_transient( 'grayfox_kb_first_doc_ready', 1, 0 );
 			}
 
+			/**
+			 * Fires when an uploaded attachment has been successfully summarized
+			 * and marked active in the knowledge base.
+			 *
+			 * @since 1.0.0
+			 * @param int   $attachment_id WordPress attachment ID of the source file.
+			 * @param array $content_json  Structured summary array produced by the LLM.
+			 */
 			do_action( 'grayfox_document_processed', $attachment_id, $content_json );
 		}
 	}
@@ -278,6 +286,17 @@ class GrayFox_RAG {
 			}
 		}
 
+		/**
+		 * Filters the consolidated knowledge base JSON before it is returned
+		 * to any consumer (chatbot, site builder, external plugin, etc.).
+		 *
+		 * The value is a JSON-encoded array of active KB document objects.
+		 * Return a modified JSON string to inject, remove, or reorder content.
+		 *
+		 * @since 1.0.0
+		 * @param string $knowledge JSON-encoded array of active KB document objects.
+		 * @param string $query     The search query used to filter documents, or empty string.
+		 */
 		return apply_filters( 'grayfox_knowledge_context', wp_json_encode( $knowledge ), $query );
 	}
 
@@ -634,6 +653,15 @@ class GrayFox_RAG {
 		}
 
 		if ( 'active' === $status ) {
+			/**
+			 * Fires when an external source document (Google Drive, Google Doc, manual)
+			 * has been successfully summarized and marked active in the knowledge base.
+			 *
+			 * @since 1.0.0
+			 * @param string $source_id    External source identifier (e.g. Google Drive file ID).
+			 * @param array  $content_json Structured summary array produced by the LLM.
+			 * @param string $source_name  Human-readable name of the source document.
+			 */
 			do_action( 'grayfox_document_processed', $source_id, $content_json, $source_name );
 		}
 	}
