@@ -600,7 +600,7 @@
 						${ escHtml( date ) }
 					</div>
 				</div>
-				<a href="${ escHtml( activateUrl ) }" class="button button-small" style="flex-shrink:0;">Activate</a>
+				<a href="${ activateUrl }" class="button button-small" style="flex-shrink:0;">Activate</a>
 				<button type="button" class="grayfox-tb-delete-theme button button-small" data-slug="${ escHtml( slug ) }" data-name="${ escHtml( displayName ) }" style="flex-shrink:0;color:#d63638;border-color:#d63638;">Delete</button>
 			`;
 			list.appendChild( card );

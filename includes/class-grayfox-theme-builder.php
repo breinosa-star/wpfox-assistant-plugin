@@ -194,7 +194,7 @@ class GrayFox_ThemeBuilder {
 			'display_name'   => $display_name,
 			'visual_style'   => $profile['visual_style'] ?? 'clean',
 			'generated_at'   => time(),
-			'activate_url'   => wp_nonce_url( admin_url( 'themes.php?action=activate&stylesheet=' . rawurlencode( $slug ) ), 'switch-theme_' . $slug ),
+			'activate_url'   => add_query_arg( array( 'action' => 'activate', 'stylesheet' => $slug, '_wpnonce' => wp_create_nonce( 'switch-theme_' . $slug ) ), admin_url( 'themes.php' ) ),
 			'themes_url'     => admin_url( 'themes.php' ),
 			'remaining_slots' => self::MAX_THEMES - count( $registry ),
 		) );
@@ -230,6 +230,10 @@ class GrayFox_ThemeBuilder {
 		if ( $wp_filesystem && $wp_filesystem->is_dir( $theme_dir ) ) {
 			$wp_filesystem->delete( $theme_dir, true );
 		}
+
+		// Remove theme customizer settings.
+		remove_theme_mods();
+		delete_option( 'theme_mods_' . $slug );
 
 		// Remove from registry.
 		$registry = get_option( self::GENERATED_THEMES_OPTION, array() );
@@ -1681,7 +1685,7 @@ add_action( 'after_switch_theme', 'grayfox_theme_seed_footer_nav' );
 		// ── templates block ────────────────────────────────────────────────────
 		$raw_templates  = is_array( $manifest['templates'] ?? null ) ? $manifest['templates'] : array();
 		$clean_templates = array();
-		$valid_types     = array( 'content', 'content-single', 'archive', 'error', 'search' );
+		$valid_types     = array( 'content', 'content-single', 'archive', 'error', 'search', 'page' );
 		$valid_card_styles = array( 'standard', 'minimal', 'portfolio', 'team' );
 
 		foreach ( $raw_templates as $filename => $tspec ) {

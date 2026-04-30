@@ -113,6 +113,12 @@ trait GrayFox_SB_PatternSchema {
 						);
 					}
 					break;
+
+				default:
+					if ( ! empty( $name ) && defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+						error_log( sprintf( 'GrayFox SB extract_schema: unhandled block "%s" — not recursed or indexed. If this block contains content, add it to the container or slot handler list.', $name ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+					}
+					break;
 			}
 		}
 
@@ -132,8 +138,13 @@ trait GrayFox_SB_PatternSchema {
 	 * @return string Expanded block HTML, or empty string if unresolvable.
 	 */
 	private function resolve_pattern_content( array $pattern, WP_Block_Patterns_Registry $registry ): string {
-		$raw = $pattern['content'] ?? '';
+		$pattern_name = $pattern['name'] ?? 'unknown';
+		$raw          = $pattern['content'] ?? '';
+
 		if ( empty( $raw ) ) {
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( sprintf( 'GrayFox SB pattern_resolve [%s]: pattern has no content field — skipping.', $pattern_name ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			}
 			return '';
 		}
 
@@ -157,6 +168,9 @@ trait GrayFox_SB_PatternSchema {
 			}
 			$slug = $block['attrs']['slug'] ?? '';
 			if ( ! $slug || ! $registry->is_registered( $slug ) ) {
+				if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+					error_log( sprintf( 'GrayFox SB pattern_resolve [%s]: core/pattern reference "%s" is not registered — cannot expand.', $pattern_name, $slug ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				}
 				continue;
 			}
 			$ref     = $registry->get_registered( $slug );
@@ -164,6 +178,13 @@ trait GrayFox_SB_PatternSchema {
 			if ( ! empty( $ref_raw ) ) {
 				return preg_replace( '/<\?php[\s\S]*?\?>\s*/i', '', $ref_raw );
 			}
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( sprintf( 'GrayFox SB pattern_resolve [%s]: referenced pattern "%s" resolved but has empty content.', $pattern_name, $slug ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			}
+		}
+
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			error_log( sprintf( 'GrayFox SB pattern_resolve [%s]: fell through — returning potentially unresolved shorthand HTML.', $pattern_name ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 		}
 
 		return $html;
@@ -213,6 +234,13 @@ class GrayFox_SB_Tool_QueryTemplates extends GrayFox_Tool {
 		$templates  = get_block_templates( array( 'theme' => $theme_slug, 'post_type' => 'page' ) );
 
 		if ( empty( $templates ) ) {
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( sprintf( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+					'GrayFox SB sb_query_templates: no FSE templates found for theme "%s". Is this a block theme? wp_is_block_theme=%s',
+					get_stylesheet(),
+					( function_exists( 'wp_is_block_theme' ) && wp_is_block_theme() ) ? 'true' : 'false'
+				) );
+			}
 			return wp_json_encode( array() );
 		}
 
@@ -367,6 +395,9 @@ class GrayFox_SB_Tool_QueryPatterns extends GrayFox_Tool {
 				$blocks = parse_blocks( $raw );
 				$idx    = 0;
 				$schema = $this->extract_schema( $blocks, $idx );
+				if ( empty( $schema ) && defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+					error_log( sprintf( 'GrayFox SB sb_query_patterns: pattern "%s" has content but extract_schema returned 0 slots. Block structure may use unhandled container types.', $name ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				}
 			}
 
 			$result[] = array(
@@ -499,13 +530,40 @@ class GrayFox_SB_Tool_AppendPattern extends GrayFox_Tool {
 			$slot_map[ (int) ( $slot['index'] ?? -1 ) ] = $slot;
 		}
 
-		// Detect missing slots before injecting — give the LLM full visibility.
+		// Detect missing or malformed slots before injecting.
+		// Check both index presence AND that the required key for the slot type is non-empty.
 		$missing_slots = array();
 		foreach ( $expected_schema as $entry ) {
-			if ( ! isset( $slot_map[ $entry['index'] ] ) ) {
+			$sidx  = $entry['index'];
+			$stype = $entry['type'];
+			$slot  = $slot_map[ $sidx ] ?? null;
+
+			$filled = false;
+			if ( $slot ) {
+				switch ( $stype ) {
+					case 'heading':
+					case 'paragraph':
+						$filled = ! empty( $slot['content'] );
+						break;
+					case 'html':
+						// Accept either 'html' or 'content' — LLMs routinely use 'content' for html slots.
+						$filled = ! empty( $slot['html'] ) || ! empty( $slot['content'] );
+						break;
+					case 'buttons':
+						$filled = ! empty( $slot['buttons'] );
+						break;
+					case 'image':
+						$filled = ! empty( $slot['keyword'] );
+						break;
+					default:
+						$filled = true;
+				}
+			}
+
+			if ( ! $filled ) {
 				$missing_slots[] = array(
-					'index' => $entry['index'],
-					'type'  => $entry['type'],
+					'index' => $sidx,
+					'type'  => $stype,
 					'hint'  => $entry['hint'] ?? '',
 				);
 			}
@@ -587,8 +645,10 @@ class GrayFox_SB_Tool_AppendPattern extends GrayFox_Tool {
 			switch ( $name ) {
 				case 'core/heading':
 					$slot = $slot_map[ $idx ] ?? null;
-					if ( $slot && isset( $slot['content'] ) ) {
+					if ( $slot && ! empty( $slot['content'] ) ) {
 						$block = $this->replace_text_in_block( $block, wp_kses_post( $slot['content'] ) );
+					} elseif ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+						error_log( sprintf( 'GrayFox SB inject_content: heading slot %d skipped — %s', $idx, $slot ? 'content key missing or empty' : 'no slot provided' ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 					}
 					$idx++;
 					break;
@@ -603,8 +663,10 @@ class GrayFox_SB_Tool_AppendPattern extends GrayFox_Tool {
 					// Only consume an index for non-empty paragraphs (matches extract_schema).
 					if ( ! empty( $current ) ) {
 						$slot = $slot_map[ $idx ] ?? null;
-						if ( $slot && isset( $slot['content'] ) ) {
+						if ( $slot && ! empty( $slot['content'] ) ) {
 							$block = $this->replace_text_in_block( $block, wp_kses_post( $slot['content'] ) );
+						} elseif ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+							error_log( sprintf( 'GrayFox SB inject_content: paragraph slot %d skipped — %s', $idx, $slot ? 'content key missing or empty' : 'no slot provided' ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 						}
 						$idx++;
 					}
@@ -645,16 +707,20 @@ class GrayFox_SB_Tool_AppendPattern extends GrayFox_Tool {
 					break;
 
 				case 'core/html':
-					$slot = $slot_map[ $idx ] ?? null;
-					if ( $slot && ! empty( $slot['html'] ) ) {
+					$slot     = $slot_map[ $idx ] ?? null;
+					// Accept 'html' or 'content' — LLMs frequently use 'content' for html-type slots.
+					$html_val = $slot['html'] ?? $slot['content'] ?? '';
+					if ( $slot && ! empty( $html_val ) ) {
 						// core/html is WordPress's raw-HTML block. Patterns legitimately
 						// embed <style> tags for scoped component CSS, but wp_kses_post
 						// strips them. Extend the allowlist so those styles are preserved.
-						$allowed            = wp_kses_allowed_html( 'post' );
-						$allowed['style']   = array();
-						$new_html           = wp_kses( $slot['html'], $allowed );
+						$allowed               = wp_kses_allowed_html( 'post' );
+						$allowed['style']      = array();
+						$new_html              = wp_kses( $html_val, $allowed );
 						$block['innerHTML']    = $new_html;
 						$block['innerContent'] = array( $new_html );
+					} elseif ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+						error_log( sprintf( 'GrayFox SB inject_content: html slot %d skipped — %s', $idx, $slot ? 'html/content key missing or empty' : 'no slot provided' ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 					}
 					$idx++;
 					break;
@@ -849,7 +915,21 @@ class GrayFox_SB_Tool_CreatePage extends GrayFox_Tool {
 
 		add_post_meta( $post_id, '_grayfox_generated', '1', true );
 		if ( ! empty( $this->extra_meta['_wp_page_template'] ) ) {
-			update_post_meta( $post_id, '_wp_page_template', sanitize_text_field( $this->extra_meta['_wp_page_template'] ) );
+			$template_slug = sanitize_text_field( $this->extra_meta['_wp_page_template'] );
+			update_post_meta( $post_id, '_wp_page_template', $template_slug );
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				$available_templates = get_block_templates( array( 'theme' => get_stylesheet(), 'post_type' => 'page' ) );
+				$available_slugs     = array_map( static fn( $t ) => $t->slug, $available_templates );
+				if ( ! in_array( $template_slug, $available_slugs, true ) ) {
+					error_log( sprintf( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+						'GrayFox SB sb_create_page: assigned template "%s" to post %d but it is NOT registered in theme "%s". Available templates: %s',
+						$template_slug,
+						$post_id,
+						get_stylesheet(),
+						implode( ', ', $available_slugs ) ?: 'none'
+					) );
+				}
+			}
 		}
 		if ( ! empty( $this->extra_meta['content_brief'] ) ) {
 			update_post_meta( $post_id, '_grayfox_content_brief', sanitize_text_field( $this->extra_meta['content_brief'] ) );

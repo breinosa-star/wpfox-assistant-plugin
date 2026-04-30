@@ -959,13 +959,26 @@ class GrayFox_LLM {
 			return array( 'status' => 'complete', 'content' => '', 'tool_calls' => array(), 'assistant_message' => array() );
 		}
 
-		$body = json_decode( wp_remote_retrieve_body( $response ), true );
+		$raw_body = wp_remote_retrieve_body( $response );
+		$http_code = wp_remote_retrieve_response_code( $response );
+		$body      = json_decode( $raw_body, true );
+
+		if ( ! is_array( $body ) ) {
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( sprintf( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+					'GrayFox LLM tools_openai: null/invalid body (HTTP %d). Raw: %s',
+					$http_code,
+					mb_substr( $raw_body, 0, 300 )
+				) );
+			}
+			return array( 'status' => 'error', 'content' => '', 'tool_calls' => array(), 'assistant_message' => array() );
+		}
 
 		if ( isset( $body['error'] ) ) {
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( 'GrayFox LLM tools_openai API error: ' . ( $body['error']['message'] ?? wp_remote_retrieve_body( $response ) ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				error_log( 'GrayFox LLM tools_openai API error: ' . ( $body['error']['message'] ?? $raw_body ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			}
-			return array( 'status' => 'complete', 'content' => '', 'tool_calls' => array(), 'assistant_message' => array() );
+			return array( 'status' => 'error', 'content' => '', 'tool_calls' => array(), 'assistant_message' => array() );
 		}
 
 		$choice        = $body['choices'][0] ?? array();
@@ -1092,10 +1105,31 @@ class GrayFox_LLM {
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
 				error_log( 'GrayFox LLM tools_anthropic wp_error: ' . $response->get_error_message() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			}
-			return array( 'status' => 'complete', 'content' => '', 'tool_calls' => array(), 'assistant_message' => array() );
+			return array( 'status' => 'error', 'content' => '', 'tool_calls' => array(), 'assistant_message' => array() );
 		}
 
-		$result      = json_decode( wp_remote_retrieve_body( $response ), true );
+		$raw_anthropic  = wp_remote_retrieve_body( $response );
+		$http_anthropic = wp_remote_retrieve_response_code( $response );
+		$result         = json_decode( $raw_anthropic, true );
+
+		if ( ! is_array( $result ) ) {
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( sprintf( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+					'GrayFox LLM tools_anthropic: null/invalid body (HTTP %d). Raw: %s',
+					$http_anthropic,
+					mb_substr( $raw_anthropic, 0, 300 )
+				) );
+			}
+			return array( 'status' => 'error', 'content' => '', 'tool_calls' => array(), 'assistant_message' => array() );
+		}
+
+		if ( isset( $result['error'] ) ) {
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( 'GrayFox LLM tools_anthropic API error: ' . ( $result['error']['message'] ?? $raw_anthropic ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			}
+			return array( 'status' => 'error', 'content' => '', 'tool_calls' => array(), 'assistant_message' => array() );
+		}
+
 		$stop_reason = $result['stop_reason'] ?? 'end_turn';
 		$blocks      = $result['content'] ?? array();
 
@@ -1255,11 +1289,32 @@ class GrayFox_LLM {
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
 				error_log( 'GrayFox LLM tools_gemini wp_error: ' . $response->get_error_message() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			}
-			return array( 'status' => 'complete', 'content' => '', 'tool_calls' => array(), 'assistant_message' => array() );
+			return array( 'status' => 'error', 'content' => '', 'tool_calls' => array(), 'assistant_message' => array() );
 		}
 
-		$result = json_decode( wp_remote_retrieve_body( $response ), true );
-		$parts  = $result['candidates'][0]['content']['parts'] ?? array();
+		$raw_gemini  = wp_remote_retrieve_body( $response );
+		$http_gemini = wp_remote_retrieve_response_code( $response );
+		$result      = json_decode( $raw_gemini, true );
+
+		if ( ! is_array( $result ) ) {
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( sprintf( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+					'GrayFox LLM tools_gemini: null/invalid body (HTTP %d). Raw: %s',
+					$http_gemini,
+					mb_substr( $raw_gemini, 0, 300 )
+				) );
+			}
+			return array( 'status' => 'error', 'content' => '', 'tool_calls' => array(), 'assistant_message' => array() );
+		}
+
+		if ( isset( $result['error'] ) ) {
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( 'GrayFox LLM tools_gemini API error: ' . ( $result['error']['message'] ?? $raw_gemini ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			}
+			return array( 'status' => 'error', 'content' => '', 'tool_calls' => array(), 'assistant_message' => array() );
+		}
+
+		$parts = $result['candidates'][0]['content']['parts'] ?? array();
 
 		$has_function_call = false;
 		$normalized        = array();

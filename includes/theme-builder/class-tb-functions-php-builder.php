@@ -270,7 +270,11 @@ add_action( 'after_switch_theme', '<?php echo $fn_prefix; ?>_seed_footer_nav' );
 		);
 
 		if ( $include_icons ) {
-			$downloads[ $css_dir . '/bootstrap-icons.min.css' ] = 'https://cdn.jsdelivr.net/npm/bootstrap-icons@' . $bi_ver . '/font/bootstrap-icons.min.css';
+			$fonts_dir = $css_dir . '/fonts';
+			wp_mkdir_p( $fonts_dir );
+			$downloads[ $css_dir . '/bootstrap-icons.min.css' ]          = 'https://cdn.jsdelivr.net/npm/bootstrap-icons@' . $bi_ver . '/font/bootstrap-icons.min.css';
+			$downloads[ $fonts_dir . '/bootstrap-icons.woff2' ]           = 'https://cdn.jsdelivr.net/npm/bootstrap-icons@' . $bi_ver . '/font/fonts/bootstrap-icons.woff2';
+			$downloads[ $fonts_dir . '/bootstrap-icons.woff' ]            = 'https://cdn.jsdelivr.net/npm/bootstrap-icons@' . $bi_ver . '/font/fonts/bootstrap-icons.woff';
 		}
 
 		foreach ( $downloads as $dest => $url ) {

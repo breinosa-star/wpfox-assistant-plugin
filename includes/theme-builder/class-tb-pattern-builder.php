@@ -459,18 +459,7 @@ class GrayFox_TB_PatternBuilder {
 		string $keywords,
 		int $viewport = 1280
 	): string {
-		ob_start(); ?>
-<?php
-/**
- * Title: <?= $title ?>
- * Slug: <?= $slug ?>
- * Categories: <?= $categories ?>
- * Keywords: <?= $keywords ?>
- * Viewport Width: <?= $viewport ?>
- */
-?>
-
-		<?php return ob_get_clean();
+		return "<?php\n/**\n * Title: {$title}\n * Slug: {$slug}\n * Categories: {$categories}\n * Keywords: {$keywords}\n * Viewport Width: {$viewport}\n */\n?>\n";
 	}
 
 }

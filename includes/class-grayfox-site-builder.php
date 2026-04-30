@@ -353,6 +353,15 @@ class GrayFox_SiteBuilder {
 	public function register_as_callback(): void {
 		add_action( self::AS_HOOK_GENERATE, array( $this, 'generate_site_pages' ), 10, 2 );
 		add_action( self::AS_HOOK_REVISE,   array( $this, 'handle_revise_page' ),  10, 1 );
+
+		// Site generation can take 10–20 minutes depending on page count and LLM latency.
+		// Extend AS watchdog timeout to 30 minutes for this hook only.
+		add_filter( 'action_scheduler_timeout_period', function( int $timeout, $action = null ) {
+			if ( $action && method_exists( $action, 'get_hook' ) && $action->get_hook() === self::AS_HOOK_GENERATE ) {
+				return 1800;
+			}
+			return $timeout;
+		}, 10, 2 );
 	}
 
 	/**
@@ -833,11 +842,32 @@ class GrayFox_SiteBuilder {
 			array( 'role' => 'user',   'content' => "Build the page now." ),
 		);
 
-		$max_iters = 14;
-		$post_id   = 0;
+		$max_iters    = 14;
+		$post_id      = 0;
+		$api_failures = 0;
 
 		for ( $i = 0; $i < $max_iters; $i++ ) {
 			$result = $llm->request_with_tools( $provider, $api_key, $model, $messages, $tool_defs );
+
+			// API-level failure (bad body, HTTP error, quota) — retry once, then abort.
+			if ( 'error' === ( $result['status'] ?? '' ) ) {
+				$api_failures++;
+				if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+					error_log( sprintf( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+						'GrayFox SB harness [%s]: API error (attempt %d/2). %s.',
+						$page_ctx['page_title'],
+						$api_failures,
+						$api_failures < 2 ? 'Retrying' : 'Aborting page'
+					) );
+				}
+				if ( $api_failures < 2 ) {
+					sleep( 2 );
+					continue;
+				}
+				break;
+			}
+
+			$api_failures = 0;
 
 			if ( ! empty( $result['assistant_message'] ) ) {
 				$messages[] = $result['assistant_message'];
@@ -859,13 +889,7 @@ class GrayFox_SiteBuilder {
 					$messages[] = array( 'role' => 'user', 'content' => 'Continue building the page. Call the next tool now.' );
 					continue;
 				}
-				// Empty content = API error swallowed upstream — abort this page.
-				if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-					error_log( sprintf( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-						'GrayFox SB harness [%s]: API returned empty response (rate limit or timeout). Aborting page.',
-						$page_ctx['page_title']
-					) );
-				}
+				// LLM returned stop with no content and no tool calls — treat as done.
 				break;
 			}
 
@@ -909,7 +933,16 @@ class GrayFox_SiteBuilder {
 		}
 
 		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-			error_log( sprintf( 'GrayFox SB harness [%s]: loop complete after %d iteration(s). post_id=%d', $page_ctx['page_title'], $i + 1, $post_id ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			if ( $i >= $max_iters ) {
+				error_log( sprintf( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+					'GrayFox SB harness [%s]: MAX ITERATIONS (%d) reached without sb_page_complete. post_id=%d. Page is likely incomplete.',
+					$page_ctx['page_title'],
+					$max_iters,
+					$post_id
+				) );
+			} else {
+				error_log( sprintf( 'GrayFox SB harness [%s]: loop complete after %d iteration(s). post_id=%d', $page_ctx['page_title'], $i + 1, $post_id ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			}
 		}
 
 		return array( 'post_id' => $post_id );

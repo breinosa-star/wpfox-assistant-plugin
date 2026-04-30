@@ -50,6 +50,13 @@ class GrayFox_TB_TemplateBuilder {
 	private static function render_template( string $filename, array $spec, array $manifest ): string {
 		$type = $spec['type'] ?? 'content';
 
+		// page.html is the WordPress generic Page template — it must always include
+		// wp:post-content so the editor-saved blocks are rendered. Pattern composition
+		// (no wp:post-content) is only appropriate for the front page.
+		if ( 'page.html' === $filename ) {
+			return self::render_content( $spec, $manifest );
+		}
+
 		switch ( $type ) {
 			case 'content':
 				return self::render_pattern_composition( $spec, $manifest );
