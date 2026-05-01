@@ -179,6 +179,7 @@ const requiredFiles = [
 	'includes/class-grayfox-chat.php',
 	'includes/class-grayfox-llm.php',
 	'includes/class-grayfox-rag.php',
+	'includes/class-grayfox-rest-api.php',
 	'includes/class-grayfox-settings.php',
 	'assets/dist/grayfox-chat.min.js',
 ];

@@ -26,6 +26,7 @@ class GrayFox_DB {
 		'conversations',
 		'messages',
 		'security_log',
+		'api_log',
 	);
 
 	/**
@@ -109,6 +110,24 @@ class GrayFox_DB {
 			PRIMARY KEY (id),
 			KEY ip_address (ip_address),
 			KEY created_at (created_at)
+		) {$charset};";
+
+		// 5. API log.
+		$api_log_table = self::get_table( 'api_log' );
+		$sql[]         = "CREATE TABLE `{$api_log_table}` (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			created_at DATETIME NOT NULL,
+			ip_address VARCHAR(45) NOT NULL DEFAULT '',
+			country_code VARCHAR(2) NOT NULL DEFAULT '',
+			user_agent TEXT NOT NULL,
+			is_ai_agent TINYINT(1) NOT NULL DEFAULT 0,
+			agent_name VARCHAR(100) NOT NULL DEFAULT '',
+			query VARCHAR(500) NOT NULL DEFAULT '',
+			response_size_bytes INT NOT NULL DEFAULT 0,
+			response_time_ms INT NOT NULL DEFAULT 0,
+			PRIMARY KEY (id),
+			KEY created_at (created_at),
+			KEY is_ai_agent (is_ai_agent)
 		) {$charset};";
 
 		foreach ( $sql as $query ) {

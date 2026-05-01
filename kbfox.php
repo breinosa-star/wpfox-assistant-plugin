@@ -97,6 +97,7 @@ require_once GRAYFOX_PATH . 'includes/class-grayfox-chat.php';
 require_once GRAYFOX_PATH . 'includes/class-grayfox-widget.php';
 require_once GRAYFOX_PATH . 'includes/class-grayfox-shortcode.php';
 require_once GRAYFOX_PATH . 'includes/class-grayfox-admin.php';
+require_once GRAYFOX_PATH . 'includes/class-grayfox-rest-api.php';
 require_once GRAYFOX_PATH . 'includes/class-grayfox-plugin.php';
 
 /* ------------------------------------------------------------------
@@ -130,7 +131,10 @@ add_action( 'plugins_loaded', function () {
 
 register_activation_hook( GRAYFOX_PLUGIN_FILE, function () {
 	GrayFox_DB::create_tables();
-	update_option( 'grayfox_db_version', '1.2.0' );
+	update_option( 'grayfox_db_version', '1.3.0' );
+	// Register llms.txt rewrite rule and flush so it resolves immediately.
+	add_rewrite_rule( '^llms\.txt$', 'index.php?grayfox_llms_txt=1', 'top' );
+	flush_rewrite_rules();
 	// Set default options on first activation.
 	if ( ! get_option( 'grayfox_widget_name' ) ) {
 		update_option( 'grayfox_widget_name', 'Chat with us' );

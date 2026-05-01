@@ -49,9 +49,9 @@ class GrayFox_Plugin {
 		$this->loader = new GrayFox_Loader();
 
 		// Run dbDelta for schema upgrades on existing installs.
-		if ( get_option( 'grayfox_db_version', '1.0.0' ) !== '1.1.0' ) {
+		if ( get_option( 'grayfox_db_version', '1.0.0' ) !== '1.3.0' ) {
 			GrayFox_DB::create_tables();
-			update_option( 'grayfox_db_version', '1.1.0' );
+			update_option( 'grayfox_db_version', '1.3.0' );
 		}
 
 		$db        = new GrayFox_DB();
@@ -61,6 +61,7 @@ class GrayFox_Plugin {
 		$admin     = new GrayFox_Admin();
 		$chat      = new GrayFox_Chat();
 		$rag       = GrayFox_RAG::get_instance();
+		$rest_api  = new GrayFox_REST_API();
 
 		$settings->register( $this->loader );
 		$widget->register( $this->loader );
@@ -68,6 +69,7 @@ class GrayFox_Plugin {
 		$admin->register( $this->loader );
 		$chat->register( $this->loader );
 		$rag->register( $this->loader );
+		$rest_api->register( $this->loader );
 
 		$this->loader->run();
 	}

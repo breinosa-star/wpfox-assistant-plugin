@@ -52,7 +52,7 @@ if ( $show_onboarding ) {
 		<div class="notice notice-info is-dismissible">
 			<p>
 				<?php esc_html_e( 'Your knowledge base is ready!', 'kbfox' ); ?>
-				<a href="<?php echo esc_url( admin_url( 'admin.php?page=grayfox-site-builder' ) ); ?>">
+				<a href="https://plugins.grayfoxdc.com" target="_blank" rel="noopener noreferrer">
 					<?php esc_html_e( 'Want to build your site from it? Check out GrayFox Pro.', 'kbfox' ); ?>
 				</a>
 			</p>

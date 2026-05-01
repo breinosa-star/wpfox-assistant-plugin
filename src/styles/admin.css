@@ -14,7 +14,351 @@
 }
 
 /* -------------------------------------------------------
- * Stats grid (overview page)
+ * Dashboard header
+ * ------------------------------------------------------- */
+.grayfox-dashboard-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 12px;
+	margin-bottom: 24px;
+	padding-bottom: 16px;
+	border-bottom: 1px solid #e5e7eb;
+}
+
+.grayfox-dashboard-title {
+	display: flex;
+	align-items: baseline;
+	gap: 10px;
+}
+
+.grayfox-dashboard-title h1 {
+	margin: 0;
+	font-size: 22px;
+	font-weight: 700;
+	color: #1f2937;
+}
+
+.grayfox-dashboard-subtitle {
+	font-size: 14px;
+	color: #6b7280;
+	font-weight: 400;
+}
+
+.grayfox-dashboard-status {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.grayfox-status-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 12px;
+	border-radius: 20px;
+	font-size: 12px;
+	font-weight: 600;
+}
+
+.grayfox-status-pill--on {
+	background: #dcfce7;
+	color: #15803d;
+}
+
+.grayfox-status-pill--off {
+	background: #f3f4f6;
+	color: #6b7280;
+}
+
+.grayfox-status-pill__dot {
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: currentColor;
+}
+
+/* -------------------------------------------------------
+ * KPI row
+ * ------------------------------------------------------- */
+.grayfox-kpi-row {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: 16px;
+	margin-bottom: 20px;
+}
+
+.grayfox-kpi-card {
+	background: #ffffff;
+	border: 1px solid #e5e7eb;
+	border-radius: 10px;
+	padding: 20px;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+	display: flex;
+	align-items: flex-start;
+	gap: 14px;
+	position: relative;
+}
+
+.grayfox-kpi-icon {
+	font-size: 22px;
+	color: #6366f1;
+	margin-top: 2px;
+	flex-shrink: 0;
+}
+
+.grayfox-kpi-body {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+}
+
+.grayfox-kpi-number {
+	font-size: 32px;
+	font-weight: 700;
+	color: #1f2937;
+	line-height: 1.1;
+}
+
+.grayfox-kpi-label {
+	font-size: 13px;
+	font-weight: 600;
+	color: #374151;
+	margin-top: 2px;
+}
+
+.grayfox-kpi-period {
+	font-size: 11px;
+	color: #9ca3af;
+	margin-top: 2px;
+}
+
+.grayfox-kpi-link {
+	position: absolute;
+	bottom: 14px;
+	right: 16px;
+	font-size: 12px;
+	color: #6366f1;
+	text-decoration: none;
+	font-weight: 500;
+}
+
+.grayfox-kpi-link:hover {
+	text-decoration: underline;
+}
+
+/* -------------------------------------------------------
+ * Detail cards row
+ * ------------------------------------------------------- */
+.grayfox-detail-row {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+	gap: 16px;
+	margin-bottom: 20px;
+}
+
+.grayfox-detail-card {
+	background: #ffffff;
+	border: 1px solid #e5e7eb;
+	border-radius: 10px;
+	padding: 20px;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+}
+
+.grayfox-detail-card__header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	border-bottom: 1px solid #f3f4f6;
+	padding-bottom: 12px;
+}
+
+.grayfox-detail-card__header h2 {
+	font-size: 14px;
+	font-weight: 700;
+	color: #1f2937;
+	margin: 0;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+.grayfox-detail-card__period {
+	font-size: 11px;
+	color: #9ca3af;
+	font-weight: 500;
+}
+
+.grayfox-detail-card__provider {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.grayfox-detail-card__footer {
+	margin-top: auto;
+	padding-top: 12px;
+	border-top: 1px solid #f3f4f6;
+	font-size: 12px;
+}
+
+.grayfox-detail-card__footer a {
+	color: #6366f1;
+	text-decoration: none;
+	font-weight: 500;
+}
+
+.grayfox-detail-card__footer a:hover {
+	text-decoration: underline;
+}
+
+/* -------------------------------------------------------
+ * Stat items (used inside detail cards)
+ * ------------------------------------------------------- */
+.grayfox-stat-row {
+	display: flex;
+	gap: 20px;
+	flex-wrap: wrap;
+}
+
+.grayfox-stat-item {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.grayfox-stat-item__value {
+	font-size: 24px;
+	font-weight: 700;
+	color: #1f2937;
+	line-height: 1.1;
+}
+
+.grayfox-stat-item__label {
+	font-size: 12px;
+	color: #6b7280;
+}
+
+/* -------------------------------------------------------
+ * Empty state inside detail cards
+ * ------------------------------------------------------- */
+.grayfox-detail-empty {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	padding: 20px 0;
+	color: #9ca3af;
+	text-align: center;
+}
+
+.grayfox-detail-empty .dashicons {
+	font-size: 28px;
+	width: 28px;
+	height: 28px;
+	color: #d1d5db;
+}
+
+.grayfox-detail-empty p {
+	margin: 0;
+	font-size: 13px;
+}
+
+/* -------------------------------------------------------
+ * Top queries tags
+ * ------------------------------------------------------- */
+.grayfox-top-queries {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.grayfox-top-queries__label {
+	font-size: 12px;
+	font-weight: 600;
+	color: #6b7280;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	margin: 0;
+}
+
+.grayfox-query-tag {
+	display: inline-block;
+	background: #f3f4f6;
+	color: #374151;
+	font-size: 12px;
+	padding: 3px 10px;
+	border-radius: 20px;
+	margin-right: 4px;
+}
+
+/* -------------------------------------------------------
+ * Quick actions bar
+ * ------------------------------------------------------- */
+.grayfox-actions-bar {
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap;
+	margin-bottom: 20px;
+}
+
+/* -------------------------------------------------------
+ * Pro upsell banner
+ * ------------------------------------------------------- */
+.grayfox-upsell {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 24px;
+	background: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%);
+	border: 1px solid #c7d2fe;
+	border-radius: 10px;
+	padding: 20px 24px;
+}
+
+.grayfox-upsell__content h2 {
+	font-size: 15px;
+	font-weight: 700;
+	color: #3730a3;
+	margin: 0 0 12px 0;
+}
+
+.grayfox-upsell__features {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.grayfox-upsell__features li {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 13px;
+	color: #4338ca;
+}
+
+.grayfox-upsell__features .dashicons {
+	font-size: 16px;
+	width: 16px;
+	height: 16px;
+	color: #6366f1;
+	flex-shrink: 0;
+}
+
+.grayfox-upsell__action {
+	flex-shrink: 0;
+}
+
+/* -------------------------------------------------------
+ * Legacy stat grid (kept for other pages that may use it)
  * ------------------------------------------------------- */
 .grayfox-stats-grid {
 	display: grid;
@@ -296,8 +640,24 @@
  * Responsive
  * ------------------------------------------------------- */
 @media (max-width: 782px) {
+	.grayfox-dashboard-header {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.grayfox-kpi-row,
+	.grayfox-detail-row,
 	.grayfox-stats-grid {
 		grid-template-columns: 1fr;
+	}
+
+	.grayfox-upsell {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.grayfox-stat-row {
+		flex-direction: column;
 	}
 
 	.grayfox-date-filter {

@@ -259,6 +259,41 @@ class GrayFox_Settings {
 			'grayfox_conversation_limits'
 		);
 
+		add_settings_section(
+			'grayfox_public_kb_api',
+			__( 'Public KB API', 'kbfox' ),
+			array( $this, 'render_public_kb_api_section' ),
+			self::PAGE_SLUG
+		);
+
+		register_setting( self::OPTION_GROUP, 'grayfox_public_kb_api_enabled', array(
+			'type'              => 'boolean',
+			'sanitize_callback' => array( $this, 'sanitize_checkbox' ),
+			'default'           => false,
+		) );
+
+		add_settings_field(
+			'grayfox_public_kb_api_enabled',
+			__( 'Enable public KB API', 'kbfox' ),
+			array( $this, 'render_public_kb_api_enabled_field' ),
+			self::PAGE_SLUG,
+			'grayfox_public_kb_api'
+		);
+
+		register_setting( self::OPTION_GROUP, 'grayfox_public_kb_api_rate_limit', array(
+			'type'              => 'integer',
+			'sanitize_callback' => array( $this, 'sanitize_public_kb_api_rate_limit' ),
+			'default'           => 60,
+		) );
+
+		add_settings_field(
+			'grayfox_public_kb_api_rate_limit',
+			__( 'Rate limit (requests per IP per hour)', 'kbfox' ),
+			array( $this, 'render_public_kb_api_rate_limit_field' ),
+			self::PAGE_SLUG,
+			'grayfox_public_kb_api'
+		);
+
 		do_action( 'grayfox_register_settings', self::PAGE_SLUG, self::OPTION_GROUP );
 	}
 
@@ -640,6 +675,11 @@ class GrayFox_Settings {
 		<?php
 	}
 
+	/** Render public KB API section description. */
+	public function render_public_kb_api_section(): void {
+		echo '<p>' . esc_html__( 'Expose your knowledge base as a public REST API so AI agents (ChatGPT, Claude, etc.) can discover and query it. Only enable this if your KB contains customer-facing information — it will be publicly accessible without authentication.', 'kbfox' ) . '</p>';
+	}
+
 	/** Render conversation limits section description. */
 	public function render_conversation_limits_section(): void {
 		echo '<p>' . esc_html__( 'Control how many messages a visitor can send and how many chat sessions are allowed per IP address. These settings help prevent abuse and excessive API usage.', 'kbfox' ) . '</p>';
@@ -722,9 +762,104 @@ class GrayFox_Settings {
 		<?php
 	}
 
+	/** Render public KB API enabled toggle. */
+	public function render_public_kb_api_enabled_field(): void {
+		$enabled      = (bool) get_option( 'grayfox_public_kb_api_enabled', false );
+		$endpoint_url = rest_url( 'grayfox/v1/kb' );
+		$llms_url     = home_url( '/llms.txt' );
+		?>
+		<label>
+			<input type="checkbox"
+				   id="grayfox_public_kb_api_enabled"
+				   name="grayfox_public_kb_api_enabled"
+				   value="1"
+				   <?php checked( $enabled ); ?> />
+			<?php esc_html_e( 'Allow public unauthenticated access to the knowledge base', 'kbfox' ); ?>
+		</label>
+		<?php if ( $enabled ) : ?>
+		<table class="form-table" style="margin-top:12px;">
+			<tr>
+				<th style="padding:4px 10px 4px 0;font-weight:normal;"><?php esc_html_e( 'Endpoint', 'kbfox' ); ?></th>
+				<td>
+					<code><?php echo esc_url( $endpoint_url ); ?></code>
+					<button type="button" class="button button-small grayfox-copy-url" data-url="<?php echo esc_attr( $endpoint_url ); ?>" style="margin-left:8px;"><?php esc_html_e( 'Copy', 'kbfox' ); ?></button>
+				</td>
+			</tr>
+			<tr>
+				<th style="padding:4px 10px 4px 0;font-weight:normal;"><?php esc_html_e( 'llms.txt', 'kbfox' ); ?></th>
+				<td>
+					<code><?php echo esc_url( $llms_url ); ?></code>
+					<button type="button" class="button button-small grayfox-copy-url" data-url="<?php echo esc_attr( $llms_url ); ?>" style="margin-left:8px;"><?php esc_html_e( 'Copy', 'kbfox' ); ?></button>
+				</td>
+			</tr>
+		</table>
+		<script>
+		(function() {
+			document.querySelectorAll('.grayfox-copy-url').forEach(function(btn) {
+				btn.addEventListener('click', function() {
+					navigator.clipboard.writeText(this.dataset.url).then(function() {
+						btn.textContent = '<?php echo esc_js( __( 'Copied!', 'kbfox' ) ); ?>';
+						setTimeout(function() {
+							btn.textContent = '<?php echo esc_js( __( 'Copy', 'kbfox' ) ); ?>';
+						}, 2000);
+					});
+				});
+			});
+		})();
+		</script>
+		<?php endif; ?>
+		<?php
+	}
+
+	/** Render public KB API rate limit field. */
+	public function render_public_kb_api_rate_limit_field(): void {
+		$value   = (int) get_option( 'grayfox_public_kb_api_rate_limit', 60 );
+		$default = 60;
+		?>
+		<input type="number"
+			   id="grayfox_public_kb_api_rate_limit"
+			   name="grayfox_public_kb_api_rate_limit"
+			   value="<?php echo esc_attr( $value ); ?>"
+			   class="small-text"
+			   min="10"
+			   max="600"
+			   step="10" />
+		<a href="#" class="grayfox-restore-default" data-target="grayfox_public_kb_api_rate_limit" data-default="<?php echo esc_attr( $default ); ?>" style="margin-left:8px;">
+			<?php esc_html_e( 'Restore default', 'kbfox' ); ?>
+		</a>
+		<p class="description">
+			<?php esc_html_e( 'Maximum API requests allowed per IP address per hour. Range: 10–600. Default: 60.', 'kbfox' ); ?>
+		</p>
+		<?php
+	}
+
 	/* -----------------------------------------------------------
 	 * Sanitizers
 	 * --------------------------------------------------------- */
+
+	/**
+	 * Sanitize a checkbox value to boolean.
+	 *
+	 * @param mixed $input Raw input.
+	 * @return bool
+	 */
+	public function sanitize_checkbox( $input ): bool {
+		return (bool) $input;
+	}
+
+	/**
+	 * Sanitize public KB API rate limit: integer clamped 10–600, default 60.
+	 *
+	 * @param mixed $input Raw input.
+	 * @return int
+	 */
+	public function sanitize_public_kb_api_rate_limit( $input ): int {
+		$val = (int) $input;
+		if ( $val < 10 || $val > 600 ) {
+			return 60;
+		}
+		return $val;
+	}
 
 	/**
 	 * Sanitize LLM provider to allowed values.

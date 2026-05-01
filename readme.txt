@@ -41,6 +41,17 @@ Visitor chat messages and captured contact details are stored in your WordPress 
 4. Upload documents under **GrayFox > Knowledge Base**.
 5. The chat widget is enabled by default. Visit your site front end to see it.
 
+**Public KB API**
+
+Optionally expose your knowledge base as a public REST API so AI agents (ChatGPT, Claude, and others) can discover and query it directly. When enabled, the plugin serves two public URLs:
+
+* `yoursite.com/wp-json/grayfox/v1/kb` — returns your active knowledge base as JSON. Accepts an optional `query` parameter to filter by topic.
+* `yoursite.com/llms.txt` — a machine-readable file that tells AI agents your site has a queryable knowledge base and how to reach it.
+
+Enable this under **GrayFox > Settings > Public KB API**. The endpoint and llms.txt URL are displayed there with copy buttons once enabled.
+
+This feature is intended for **customer-facing knowledge bases**. If your KB contains internal or private information, do not enable it.
+
 == Frequently Asked Questions ==
 
 = Do I need to register or create an account? =
@@ -87,6 +98,8 @@ KBFox collects and stores the following data from site visitors who use the chat
 * **Session ID** — a random identifier used to group messages into a conversation, stored in the visitor's browser session.
 * **Visitor name and email** — stored in `wp_grayfox_conversations` only if the visitor voluntarily provides this information during a chat.
 * **IP address (hashed)** — used for rate limiting only; stored as a transient, not written to a permanent table.
+
+**Public KB API requests (if enabled):** When the Public KB API is enabled, each inbound request is logged to the `wp_grayfox_api_log` table. The log includes the caller's IP address, country code (resolved via Cloudflare header if present), user agent, query parameter, response size, and response time. This data is used solely for usage analytics visible in the GrayFox admin dashboard.
 
 **What is sent to external services:** Visitor messages and relevant sections from your knowledge base are sent to the LLM API provider you configure in Settings (OpenAI, Anthropic, Google Gemini, or Groq). No visitor data is sent to GrayFox servers.
 

@@ -42,7 +42,7 @@ class GrayFox_Admin {
 	 * @param string $hook Current admin page hook.
 	 */
 	public function enqueue_admin_assets( string $hook ): void {
-		if ( false === strpos( $hook, 'kbfox' ) ) {
+		if ( false === strpos( $hook, 'grayfox' ) ) {
 			return;
 		}
 
