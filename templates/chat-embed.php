@@ -13,19 +13,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$embed_title = isset( $shortcode_title ) ? $shortcode_title : get_option( 'grayfox_widget_name', 'Chat with us' );
-$embed_color = isset( $shortcode_color ) ? $shortcode_color : get_option( 'grayfox_widget_color', '#6366f1' );
-$embed_id    = wp_unique_id( 'grayfox-embed-' );
+$grayfox_embed_title = isset( $shortcode_title ) ? $shortcode_title : get_option( 'grayfox_widget_name', 'Chat with us' );
+$grayfox_embed_color = isset( $shortcode_color ) ? $shortcode_color : get_option( 'grayfox_widget_color', '#6366f1' );
+$grayfox_embed_id    = wp_unique_id( 'grayfox-embed-' );
 ?>
-<div id="<?php echo esc_attr( $embed_id ); ?>"
+<div id="<?php echo esc_attr( $grayfox_embed_id ); ?>"
 	 class="grayfox-widget grayfox-embed"
 	 data-mode="embed"
-	 data-color="<?php echo esc_attr( $embed_color ); ?>"
-	 data-title="<?php echo esc_attr( $embed_title ); ?>">
+	 data-color="<?php echo esc_attr( $grayfox_embed_color ); ?>"
+	 data-title="<?php echo esc_attr( $grayfox_embed_title ); ?>">
 
 	<div class="grayfox-window grayfox-window--embed">
-		<div class="grayfox-header" style="background-color: <?php echo esc_attr( $embed_color ); ?>">
-			<h3 class="grayfox-title"><?php echo esc_html( $embed_title ); ?></h3>
+		<div class="grayfox-header" style="background-color: <?php echo esc_attr( $grayfox_embed_color ); ?>">
+			<h3 class="grayfox-title"><?php echo esc_html( $grayfox_embed_title ); ?></h3>
 		</div>
 
 		<div class="grayfox-messages"

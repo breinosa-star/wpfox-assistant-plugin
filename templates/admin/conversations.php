@@ -15,33 +15,35 @@ if ( ! current_user_can( 'manage_options' ) ) {
 
 global $wpdb;
 
-$conv_table = esc_sql( GrayFox_DB::get_table( 'conversations' ) );
-$msg_table  = esc_sql( GrayFox_DB::get_table( 'messages' ) );
+$grayfox_conv_table = esc_sql( GrayFox_DB::get_table( 'conversations' ) );
+$grayfox_msg_table  = esc_sql( GrayFox_DB::get_table( 'messages' ) );
 
 // Date range filter (default: last 30 days).
-$date_from_raw = isset( $_GET['date_from'] ) ? sanitize_text_field( wp_unslash( $_GET['date_from'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-$date_to_raw   = isset( $_GET['date_to'] ) ? sanitize_text_field( wp_unslash( $_GET['date_to'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+$grayfox_date_from_raw = isset( $_GET['date_from'] ) ? sanitize_text_field( wp_unslash( $_GET['date_from'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+$grayfox_date_to_raw   = isset( $_GET['date_to'] ) ? sanitize_text_field( wp_unslash( $_GET['date_to'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
-$date_from = ! empty( $date_from_raw ) && preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date_from_raw )
-	? $date_from_raw . ' 00:00:00'
+$grayfox_date_from = ! empty( $grayfox_date_from_raw ) && preg_match( '/^\d{4}-\d{2}-\d{2}$/', $grayfox_date_from_raw )
+	? $grayfox_date_from_raw . ' 00:00:00'
 	: gmdate( 'Y-m-d H:i:s', strtotime( '-30 days' ) );
 
-$date_to = ! empty( $date_to_raw ) && preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date_to_raw )
-	? $date_to_raw . ' 23:59:59'
+$grayfox_date_to = ! empty( $grayfox_date_to_raw ) && preg_match( '/^\d{4}-\d{2}-\d{2}$/', $grayfox_date_to_raw )
+	? $grayfox_date_to_raw . ' 23:59:59'
 	: gmdate( 'Y-m-d H:i:s' );
 
 // Fetch conversations with message counts.
-$conversations = $wpdb->get_results( $wpdb->prepare(
+$grayfox_conversations = $wpdb->get_results( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 	"SELECT c.id, c.session_id, c.started_at, c.last_active_at,
 			COUNT(m.id) AS message_count
-	 FROM `{$conv_table}` c
-	 LEFT JOIN `{$msg_table}` m ON m.conversation_id = c.id
+	 FROM %i c
+	 LEFT JOIN %i m ON m.conversation_id = c.id
 	 WHERE c.started_at >= %s AND c.started_at <= %s
 	 GROUP BY c.id
 	 ORDER BY c.started_at DESC
-	 LIMIT 100", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-	$date_from,
-	$date_to
+	 LIMIT 100",
+	$grayfox_conv_table,
+	$grayfox_msg_table,
+	$grayfox_date_from,
+	$grayfox_date_to
 ), ARRAY_A );
 ?>
 <div class="wrap grayfox-admin-wrap">
@@ -54,18 +56,18 @@ $conversations = $wpdb->get_results( $wpdb->prepare(
 			<?php esc_html_e( 'From:', 'kbfox' ); ?>
 			<input type="date"
 				   name="date_from"
-				   value="<?php echo esc_attr( $date_from_raw ?: gmdate( 'Y-m-d', strtotime( '-30 days' ) ) ); ?>" />
+				   value="<?php echo esc_attr( $grayfox_date_from_raw ?: gmdate( 'Y-m-d', strtotime( '-30 days' ) ) ); ?>" />
 		</label>
 		<label>
 			<?php esc_html_e( 'To:', 'kbfox' ); ?>
 			<input type="date"
 				   name="date_to"
-				   value="<?php echo esc_attr( $date_to_raw ?: gmdate( 'Y-m-d' ) ); ?>" />
+				   value="<?php echo esc_attr( $grayfox_date_to_raw ?: gmdate( 'Y-m-d' ) ); ?>" />
 		</label>
 		<?php submit_button( __( 'Filter', 'kbfox' ), 'secondary', '', false ); ?>
 	</form>
 
-	<?php if ( empty( $conversations ) ) : ?>
+	<?php if ( empty( $grayfox_conversations ) ) : ?>
 		<p><?php esc_html_e( 'No conversations found for the selected period.', 'kbfox' ); ?></p>
 	<?php else : ?>
 		<table class="wp-list-table widefat fixed striped grayfox-conv-table">
@@ -79,45 +81,45 @@ $conversations = $wpdb->get_results( $wpdb->prepare(
 				</tr>
 			</thead>
 			<tbody>
-				<?php foreach ( $conversations as $conv ) :
-					$conv_id = (int) $conv['id'];
+				<?php foreach ( $grayfox_conversations as $grayfox_conv ) :
+					$grayfox_conv_id = (int) $grayfox_conv['id'];
 					?>
-					<tr class="grayfox-conv-row" data-conv-id="<?php echo esc_attr( $conv_id ); ?>">
+					<tr class="grayfox-conv-row" data-conv-id="<?php echo esc_attr( $grayfox_conv_id ); ?>">
 						<td>
-							<code><?php echo esc_html( substr( $conv['session_id'], 0, 16 ) . '...' ); ?></code>
+							<code><?php echo esc_html( substr( $grayfox_conv['session_id'], 0, 16 ) . '...' ); ?></code>
 						</td>
-						<td><?php echo esc_html( $conv['started_at'] ); ?></td>
-						<td><?php echo esc_html( $conv['last_active_at'] ?? '—' ); ?></td>
-						<td><?php echo esc_html( number_format_i18n( (int) $conv['message_count'] ) ); ?></td>
+						<td><?php echo esc_html( $grayfox_conv['started_at'] ); ?></td>
+						<td><?php echo esc_html( $grayfox_conv['last_active_at'] ?? '—' ); ?></td>
+						<td><?php echo esc_html( number_format_i18n( (int) $grayfox_conv['message_count'] ) ); ?></td>
 						<td>
 							<button type="button"
 									class="button button-small grayfox-view-conv"
-									data-conv-id="<?php echo esc_attr( $conv_id ); ?>">
+									data-conv-id="<?php echo esc_attr( $grayfox_conv_id ); ?>">
 								<?php esc_html_e( 'View Messages', 'kbfox' ); ?>
 							</button>
 						</td>
 					</tr>
 					<!-- Message history row (hidden by default) -->
-					<tr id="grayfox-conv-detail-<?php echo esc_attr( $conv_id ); ?>"
+					<tr id="grayfox-conv-detail-<?php echo esc_attr( $grayfox_conv_id ); ?>"
 						class="grayfox-conv-detail"
 						style="display:none;">
 						<td colspan="5">
 							<?php
 							// Fetch messages for this conversation.
-							$messages_for_conv = $wpdb->get_results( $wpdb->prepare(
-								"SELECT role, content, created_at FROM `{$msg_table}` WHERE conversation_id = %d ORDER BY created_at ASC", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-								$conv_id
+							$grayfox_messages_for_conv = $wpdb->get_results( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+								"SELECT role, content, created_at FROM `{$grayfox_msg_table}` WHERE conversation_id = %d ORDER BY created_at ASC", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+								$grayfox_conv_id
 							), ARRAY_A );
 							?>
 							<div class="grayfox-message-history">
-								<?php if ( empty( $messages_for_conv ) ) : ?>
+								<?php if ( empty( $grayfox_messages_for_conv ) ) : ?>
 									<p><?php esc_html_e( 'No messages.', 'kbfox' ); ?></p>
 								<?php else : ?>
-									<?php foreach ( $messages_for_conv as $msg ) : ?>
-										<div class="grayfox-conv-message grayfox-conv-message--<?php echo esc_attr( $msg['role'] ); ?>">
-											<span class="grayfox-conv-role"><?php echo esc_html( ucfirst( $msg['role'] ) ); ?></span>
-											<span class="grayfox-conv-time"><?php echo esc_html( $msg['created_at'] ); ?></span>
-											<p><?php echo esc_html( $msg['content'] ); ?></p>
+									<?php foreach ( $grayfox_messages_for_conv as $grayfox_msg ) : ?>
+										<div class="grayfox-conv-message grayfox-conv-message--<?php echo esc_attr( $grayfox_msg['role'] ); ?>">
+											<span class="grayfox-conv-role"><?php echo esc_html( ucfirst( $grayfox_msg['role'] ) ); ?></span>
+											<span class="grayfox-conv-time"><?php echo esc_html( $grayfox_msg['created_at'] ); ?></span>
+											<p><?php echo esc_html( $grayfox_msg['content'] ); ?></p>
 										</div>
 									<?php endforeach; ?>
 								<?php endif; ?>

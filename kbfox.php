@@ -4,13 +4,12 @@
  * Plugin URI:  https://grayfoxdc.com
  * Description: KBFox — AI-powered chatbot with RAG knowledge base for WordPress
  * Version:     1.0.0
- * Requires at least: 6.0
+ * Requires at least: 6.2
  * Requires PHP: 8.1
  * Author:      GrayFox
  * Author URI:  https://grayfoxdc.com
  * License:     GPL-2.0+
  * Text Domain: kbfox
- * Domain Path: /languages
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

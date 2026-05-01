@@ -164,7 +164,7 @@ class GrayFox_Tool_Capture_Email extends GrayFox_Tool {
 				$update_data['visitor_name'] = $name;
 				$update_format[]             = '%s';
 			}
-			$wpdb->update( $conv_table, $update_data, array( 'id' => $conversation_id ), $update_format, array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+			$wpdb->update( $conv_table, $update_data, array( 'id' => $conversation_id ), $update_format, array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		}
 
 		/**

@@ -100,13 +100,13 @@ class GrayFox_RAG {
 			$source_name = $file ? basename( $file ) : (string) $attachment_id;
 		}
 
-		$existing = $wpdb->get_var( $wpdb->prepare(
+		$existing = $wpdb->get_var( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			"SELECT id FROM `{$safe_table}` WHERE source_type = 'upload' AND source_id = %s LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			(string) $attachment_id
 		) );
 
 		if ( ! $existing ) {
-			$wpdb->insert(
+			$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
 				$kb_table,
 				array(
 					'source_type'       => 'upload',
@@ -155,7 +155,7 @@ class GrayFox_RAG {
 		$kb_table      = GrayFox_DB::get_table( 'knowledge_base' );
 		$safe_kb_table = esc_sql( $kb_table );
 
-		$existing = $wpdb->get_var( $wpdb->prepare(
+		$existing = $wpdb->get_var( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			"SELECT id FROM `{$safe_kb_table}` WHERE source_type = 'upload' AND source_id = %s LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			(string) $attachment_id
 		) );
@@ -206,7 +206,7 @@ class GrayFox_RAG {
 		// Detect conflicts now that we have the doc ID. Updates status to pending_review if needed.
 		$status = $this->detect_and_flag_conflicts( $topic_array, $new_doc_id, $source_name, $new_doc_id );
 		if ( 'pending_review' === $status ) {
-			$wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+			$wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				GrayFox_DB::get_table( 'knowledge_base' ),
 				array( 'status' => 'pending_review' ),
 				array( 'id'     => $new_doc_id ),
@@ -217,8 +217,8 @@ class GrayFox_RAG {
 
 		// Trigger onboarding hint after first successfully active document.
 		if ( 'active' === $status ) {
-			$active_count = (int) $wpdb->get_var(
-				"SELECT COUNT(*) FROM `{$safe_kb_table}` WHERE status = 'active'" // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$active_count = (int) $wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE status = 'active'", $kb_table )
 			);
 			if ( 1 === $active_count ) {
 				set_transient( 'grayfox_kb_first_doc_ready', 1, 0 );
@@ -248,11 +248,11 @@ class GrayFox_RAG {
 	 */
 	public static function get_consolidated_knowledge( string $query = '' ): string {
 		global $wpdb;
-		$kb_table = esc_sql( $wpdb->prefix . 'grayfox_knowledge_base' );
+		$kb_table = $wpdb->prefix . 'grayfox_knowledge_base';
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$rows = $wpdb->get_results(
-			"SELECT id, source_name, content_json, topic_index, token_estimate, last_processed_at FROM `{$kb_table}` WHERE content_json IS NOT NULL AND content_json != '' AND status = 'active' ORDER BY last_processed_at DESC",
+			$wpdb->prepare( "SELECT id, source_name, content_json, topic_index, token_estimate, last_processed_at FROM %i WHERE content_json IS NOT NULL AND content_json != '' AND status = 'active' ORDER BY last_processed_at DESC", $kb_table ),
 			ARRAY_A
 		);
 
@@ -621,7 +621,7 @@ class GrayFox_RAG {
 		// Determine existing ID.
 		$existing_id = 0;
 		if ( null !== $source_id ) {
-			$existing = $wpdb->get_var( $wpdb->prepare(
+			$existing = $wpdb->get_var( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				"SELECT id FROM `{$safe_kb_table}` WHERE source_id = %s LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				$source_id
 			) );
@@ -643,7 +643,7 @@ class GrayFox_RAG {
 
 		$status = $this->detect_and_flag_conflicts( $topic_array, $new_doc_id, $source_name, $new_doc_id );
 		if ( 'pending_review' === $status ) {
-			$wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+			$wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$kb_table,
 				array( 'status' => 'pending_review' ),
 				array( 'id'     => $new_doc_id ),
@@ -718,19 +718,19 @@ class GrayFox_RAG {
 	 */
 	private function detect_conflicts( array $new_topics, int $exclude_id ): array {
 		global $wpdb;
-		$kb_table = esc_sql( GrayFox_DB::get_table( 'knowledge_base' ) );
+		$kb_table = GrayFox_DB::get_table( 'knowledge_base' );
 
 		if ( $exclude_id > 0 ) {
-			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- table name sanitized with esc_sql()
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$rows = $wpdb->get_results( $wpdb->prepare(
-				"SELECT id, source_name, topic_index FROM `{$kb_table}` WHERE status = 'active' AND id != %d",
+				"SELECT id, source_name, topic_index FROM %i WHERE status = 'active' AND id != %d",
+				$kb_table,
 				$exclude_id
 			), ARRAY_A );
-			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		} else {
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- table name sanitized with esc_sql()
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$rows = $wpdb->get_results(
-				"SELECT id, source_name, topic_index FROM `{$kb_table}` WHERE status = 'active'",
+				$wpdb->prepare( "SELECT id, source_name, topic_index FROM %i WHERE status = 'active'", $kb_table ),
 				ARRAY_A
 			);
 		}
@@ -770,7 +770,7 @@ class GrayFox_RAG {
 		$kb_table = GrayFox_DB::get_table( 'knowledge_base' );
 
 		if ( $existing_id > 0 ) {
-			$wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+			$wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$kb_table,
 				array(
 					'source_name'       => $source_name,
@@ -811,7 +811,7 @@ class GrayFox_RAG {
 		$kb_table = GrayFox_DB::get_table( 'knowledge_base' );
 
 		if ( $existing_id > 0 ) {
-			$wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+			$wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$kb_table,
 				array(
 					'source_name'       => $source_name,

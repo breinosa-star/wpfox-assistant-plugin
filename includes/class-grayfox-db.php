@@ -146,8 +146,7 @@ class GrayFox_DB {
 		foreach ( self::$tables as $slug ) {
 			$table = self::get_table( $slug );
 			$safe  = esc_sql( $table );
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$wpdb->query( "DROP TABLE IF EXISTS `{$safe}`" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$wpdb->query( "DROP TABLE IF EXISTS `{$safe}`" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		}
 	}
 }

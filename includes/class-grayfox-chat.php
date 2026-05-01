@@ -137,7 +137,7 @@ class GrayFox_Chat {
 
 		// 3a. Session TTL check — reject stale sessions (>24h inactive).
 		if ( ! $is_new_session ) {
-			$ttl_row = $wpdb->get_row( $wpdb->prepare(
+			$ttl_row = $wpdb->get_row( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				"SELECT last_active_at FROM `{$conv_table}` WHERE session_id = %s LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				$session_id
 			) );
@@ -190,13 +190,13 @@ class GrayFox_Chat {
 		}
 
 		// 4. Ensure a conversation record exists.
-		$conversation = $wpdb->get_row( $wpdb->prepare(
+		$conversation = $wpdb->get_row( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			"SELECT id, message_count FROM `{$conv_table}` WHERE session_id = %s LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$session_id
 		) );
 
 		if ( ! $conversation ) {
-			$wpdb->insert(
+			$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
 				$conv_table,
 				array(
 					'session_id'     => $session_id,
@@ -221,7 +221,7 @@ class GrayFox_Chat {
 		} else {
 			$conversation_id = (int) $conversation->id;
 			$msg_count       = (int) $conversation->message_count;
-			$wpdb->update(
+			$wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$conv_table,
 				array( 'last_active_at' => current_time( 'mysql' ) ),
 				array( 'id' => $conversation_id ),
@@ -277,7 +277,7 @@ class GrayFox_Chat {
 		}
 
 		// 5. Save user message to DB.
-		$wpdb->insert(
+		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
 			$msg_table,
 			array(
 				'conversation_id' => $conversation_id,
@@ -289,13 +289,13 @@ class GrayFox_Chat {
 		);
 
 		// 5a. Increment message count.
-		$wpdb->query( $wpdb->prepare(
+		$wpdb->query( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			"UPDATE `{$conv_table}` SET message_count = message_count + 1 WHERE id = %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$conversation_id
 		) );
 
 		// 6. Load conversation history.
-		$history_rows = $wpdb->get_results( $wpdb->prepare(
+		$history_rows = $wpdb->get_results( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			"SELECT role, content FROM `{$msg_table}` WHERE conversation_id = %d ORDER BY id DESC LIMIT 10", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$conversation_id
 		), ARRAY_A );
@@ -549,7 +549,7 @@ class GrayFox_Chat {
 		if ( ! empty( $full_response ) ) {
 			global $wpdb;
 			$msg_table = esc_sql( GrayFox_DB::get_table( 'messages' ) );
-			$wpdb->insert(
+			$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
 				$msg_table,
 				array(
 					'conversation_id' => $conversation_id,

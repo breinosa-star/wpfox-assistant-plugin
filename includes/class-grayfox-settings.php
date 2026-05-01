@@ -880,7 +880,7 @@ class GrayFox_Settings {
 	 */
 	public function sanitize_llm_model( string $input ): string {
 		$input    = sanitize_text_field( $input );
-		$provider = sanitize_text_field( $_POST['grayfox_llm_provider'] ?? get_option( 'grayfox_llm_provider', 'openai' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$provider = sanitize_text_field( wp_unslash( $_POST['grayfox_llm_provider'] ?? get_option( 'grayfox_llm_provider', 'openai' ) ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$models   = self::get_models_by_provider();
 		$allowed  = array_keys( $models[ $provider ] ?? array() );
 		if ( in_array( $input, $allowed, true ) ) {

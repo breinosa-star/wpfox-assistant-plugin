@@ -247,7 +247,7 @@ class GrayFox_Security {
 	): void {
 		global $wpdb;
 		$log_table = GrayFox_DB::get_table( 'security_log' );
-		$wpdb->insert(
+		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
 			$log_table,
 			array(
 				'session_id'      => $session_id,
@@ -361,7 +361,7 @@ class GrayFox_Security {
 			$safe_conv     = esc_sql( $conv_table );
 			$safe_msg      = esc_sql( $msg_table );
 			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names sanitized with esc_sql()
-			$recent_rows   = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.NoCaching
+			$recent_rows   = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$wpdb->prepare(
 					"SELECT m.role, m.content FROM `{$safe_msg}` m
 					 INNER JOIN `{$safe_conv}` c ON c.id = m.conversation_id

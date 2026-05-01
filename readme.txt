@@ -2,8 +2,8 @@
 Plugin Name: KBFox
 Contributors: breinosa
 Tags: chatbot, ai, knowledge base, chat widget
-Requires at least: 6.0
-Tested up to: 6.7
+Requires at least: 6.2
+Tested up to: 6.9
 Requires PHP: 8.1
 Stable tag: 1.0.0
 License: GPLv2 or later

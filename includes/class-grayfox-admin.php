@@ -232,7 +232,7 @@ class GrayFox_Admin {
 		global $wpdb;
 		$kb_table = esc_sql( GrayFox_DB::get_table( 'knowledge_base' ) );
 
-		$row = $wpdb->get_row( $wpdb->prepare(
+		$row = $wpdb->get_row( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			"SELECT source_type, source_id FROM `{$kb_table}` WHERE id = %d LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$doc_id
 		) );
@@ -245,9 +245,9 @@ class GrayFox_Admin {
 			wp_delete_attachment( (int) $row->source_id, true );
 		}
 
-		$wpdb->delete( $kb_table, array( 'id' => $doc_id ), array( '%d' ) );
+		$wpdb->delete( $kb_table, array( 'id' => $doc_id ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
-		$doc_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `{$kb_table}`" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$doc_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `{$kb_table}`" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
 		wp_send_json_success( array( 'doc_count' => $doc_count ) );
 	}
@@ -270,7 +270,7 @@ class GrayFox_Admin {
 		global $wpdb;
 		$kb_table = esc_sql( GrayFox_DB::get_table( 'knowledge_base' ) );
 
-		$row = $wpdb->get_row( $wpdb->prepare(
+		$row = $wpdb->get_row( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			"SELECT source_id FROM `{$kb_table}` WHERE id = %d LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$doc_id
 		) );
@@ -312,27 +312,27 @@ class GrayFox_Admin {
 		switch ( $resolution ) {
 			case 'keep_new':
 				// Activate new, delete old.
-				$old_row = $wpdb->get_row( $wpdb->prepare( "SELECT source_type, source_id FROM `{$kb_table}` WHERE id = %d", $old_doc_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$old_row = $wpdb->get_row( $wpdb->prepare( "SELECT source_type, source_id FROM `{$kb_table}` WHERE id = %d", $old_doc_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				if ( $old_row && 'upload' === $old_row->source_type ) {
 					wp_delete_attachment( (int) $old_row->source_id, true );
 				}
-				$wpdb->delete( $kb_table, array( 'id' => $old_doc_id ), array( '%d' ) );
-				$wpdb->update( $kb_table, array( 'status' => 'active' ), array( 'id' => $new_doc_id ), array( '%s' ), array( '%d' ) );
+				$wpdb->delete( $kb_table, array( 'id' => $old_doc_id ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$wpdb->update( $kb_table, array( 'status' => 'active' ), array( 'id' => $new_doc_id ), array( '%s' ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				break;
 
 			case 'keep_old':
 				// Keep old, delete new.
-				$new_row = $wpdb->get_row( $wpdb->prepare( "SELECT source_type, source_id FROM `{$kb_table}` WHERE id = %d", $new_doc_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$new_row = $wpdb->get_row( $wpdb->prepare( "SELECT source_type, source_id FROM `{$kb_table}` WHERE id = %d", $new_doc_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				if ( $new_row && 'upload' === $new_row->source_type ) {
 					wp_delete_attachment( (int) $new_row->source_id, true );
 				}
-				$wpdb->delete( $kb_table, array( 'id' => $new_doc_id ), array( '%d' ) );
+				$wpdb->delete( $kb_table, array( 'id' => $new_doc_id ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				break;
 
 			case 'keep_both':
 				// Activate both.
-				$wpdb->update( $kb_table, array( 'status' => 'active' ), array( 'id' => $new_doc_id ), array( '%s' ), array( '%d' ) );
-				$wpdb->update( $kb_table, array( 'status' => 'active' ), array( 'id' => $old_doc_id ), array( '%s' ), array( '%d' ) );
+				$wpdb->update( $kb_table, array( 'status' => 'active' ), array( 'id' => $new_doc_id ), array( '%s' ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$wpdb->update( $kb_table, array( 'status' => 'active' ), array( 'id' => $old_doc_id ), array( '%s' ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				break;
 		}
 
@@ -366,8 +366,8 @@ class GrayFox_Admin {
 		global $wpdb;
 		$kb_table = esc_sql( GrayFox_DB::get_table( 'knowledge_base' ) );
 
-		$new_row = $wpdb->get_row( $wpdb->prepare( "SELECT source_name, content_json FROM `{$kb_table}` WHERE id = %d", $new_doc_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$old_row = $wpdb->get_row( $wpdb->prepare( "SELECT source_name, content_json FROM `{$kb_table}` WHERE id = %d", $old_doc_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$new_row = $wpdb->get_row( $wpdb->prepare( "SELECT source_name, content_json FROM `{$kb_table}` WHERE id = %d", $new_doc_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$old_row = $wpdb->get_row( $wpdb->prepare( "SELECT source_name, content_json FROM `{$kb_table}` WHERE id = %d", $old_doc_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
 		if ( ! $new_row || ! $old_row ) {
 			wp_send_json_error( __( 'Documents not found.', 'kbfox' ) );

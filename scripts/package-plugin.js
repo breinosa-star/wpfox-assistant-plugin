@@ -212,7 +212,6 @@ const ALWAYS_EXCLUDE = [
 	'.idea',
 	'package.json',
 	'package-lock.json',
-	'composer.json',
 	'composer.lock',
 	'docker-compose.yml',
 	'phpunit.xml',
