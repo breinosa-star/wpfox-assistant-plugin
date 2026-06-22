@@ -18,7 +18,9 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/class-grayfox-db.php';
 global $wpdb;
 
 // Remove all plugin options and transients by prefix.
-$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE 'grayfox\_%' OR option_name LIKE '\_transient\_grayfox%' OR option_name LIKE '\_transient\_timeout\_grayfox%'" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+$wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE option_name LIKE %s", $wpdb->options, $wpdb->esc_like( 'grayfox_' ) . '%' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+$wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE option_name LIKE %s", $wpdb->options, $wpdb->esc_like( '_transient_grayfox' ) . '%' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+$wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE option_name LIKE %s", $wpdb->options, $wpdb->esc_like( '_transient_timeout_grayfox' ) . '%' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
 // Drop all custom tables.
 GrayFox_DB::drop_tables();

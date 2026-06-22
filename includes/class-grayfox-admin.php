@@ -14,6 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Registers the top-level GrayFox admin menu and subpages.
  */
+if ( ! class_exists( 'GrayFox_Admin' ) ) {
 class GrayFox_Admin {
 
 	/**
@@ -53,6 +54,83 @@ class GrayFox_Admin {
 			GRAYFOX_VERSION
 		);
 
+		if ( false !== strpos( $hook, 'grayfox-knowledge-base' ) ) {
+			wp_enqueue_script(
+				'grayfox-admin-kb',
+				GRAYFOX_URL . 'assets/js/admin-kb.js',
+				array(),
+				GRAYFOX_VERSION,
+				true
+			);
+			wp_localize_script(
+				'grayfox-admin-kb',
+				'grayfoxKB',
+				array(
+					'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+					'i18n'    => array(
+						'confirmDelete'  => __( 'Delete this document? This cannot be undone.', 'kbfox' ),
+						'deleteFailed'   => __( 'Delete failed.', 'kbfox' ),
+						'networkError'   => __( 'Network error.', 'kbfox' ),
+						'queuingText'    => __( 'Queuing…', 'kbfox' ),
+						'queuedText'     => __( 'Queued!', 'kbfox' ),
+						'retryFailed'    => __( 'Retry failed.', 'kbfox' ),
+						'retryText'      => __( 'Retry', 'kbfox' ),
+						'confirmResolve' => __( 'Apply this resolution? This cannot be undone.', 'kbfox' ),
+						'resolveFailed'  => __( 'Resolution failed.', 'kbfox' ),
+						'loadingText'    => __( 'Loading…', 'kbfox' ),
+						'diffFailed'     => __( 'Failed to load diff.', 'kbfox' ),
+					),
+				)
+			);
+		}
+
+		if ( false !== strpos( $hook, 'grayfox-settings' ) ) {
+			wp_enqueue_script(
+				'grayfox-admin-settings',
+				GRAYFOX_URL . 'assets/js/admin-settings.js',
+				array(),
+				GRAYFOX_VERSION,
+				true
+			);
+			wp_localize_script(
+				'grayfox-admin-settings',
+				'grayfoxSettings',
+				array(
+					'allModels'  => GrayFox_Settings::get_models_by_provider(),
+					'savedModel' => get_option( 'grayfox_llm_model', '' ),
+					'i18n'       => array(
+						'hide'             => __( 'Hide', 'kbfox' ),
+						'show'             => __( 'Show', 'kbfox' ),
+						'testing'          => __( 'Testing...', 'kbfox' ),
+						'connected'        => __( 'Connected!', 'kbfox' ),
+						'connectionFailed' => __( 'Connection failed.', 'kbfox' ),
+						'networkError'     => __( 'Network error.', 'kbfox' ),
+						'copied'           => __( 'Copied!', 'kbfox' ),
+						'copy'             => __( 'Copy', 'kbfox' ),
+					),
+				)
+			);
+		}
+
+		if ( false !== strpos( $hook, 'grayfox-conversations' ) ) {
+			wp_enqueue_script(
+				'grayfox-admin-conversations',
+				GRAYFOX_URL . 'assets/js/admin-conversations.js',
+				array(),
+				GRAYFOX_VERSION,
+				true
+			);
+			wp_localize_script(
+				'grayfox-admin-conversations',
+				'grayfoxConversations',
+				array(
+					'i18n' => array(
+						'hideMessages' => __( 'Hide Messages', 'kbfox' ),
+						'viewMessages' => __( 'View Messages', 'kbfox' ),
+					),
+				)
+			);
+		}
 	}
 
 	/**
@@ -67,7 +145,7 @@ class GrayFox_Admin {
 			'grayfox',
 			array( $this, 'render_overview' ),
 			'dashicons-format-chat',
-			25
+			81
 		);
 
 		// Overview subpage (same as top-level).
@@ -100,11 +178,11 @@ class GrayFox_Admin {
 			array( $this, 'render_knowledge_base' )
 		);
 
-		// Conversations subpage.
+		// Interactions subpage.
 		add_submenu_page(
 			'grayfox',
-			__( 'Conversations', 'kbfox' ),
-			__( 'Conversations', 'kbfox' ),
+			__( 'Interactions', 'kbfox' ),
+			__( 'Interactions', 'kbfox' ),
 			'manage_options',
 			'grayfox-conversations',
 			array( $this, 'render_conversations' )
@@ -218,8 +296,6 @@ class GrayFox_Admin {
 	 * AJAX: Delete a KB document row (and its media attachment if type=upload).
 	 */
 	public function handle_delete_kb_document(): void {
-		check_ajax_referer( 'grayfox_delete_kb_document' );
-
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( __( 'Unauthorized.', 'kbfox' ), 403 );
 		}
@@ -228,6 +304,8 @@ class GrayFox_Admin {
 		if ( ! $doc_id ) {
 			wp_send_json_error( __( 'Invalid document ID.', 'kbfox' ) );
 		}
+
+		check_ajax_referer( 'grayfox_delete_kb_document_' . $doc_id );
 
 		global $wpdb;
 		$kb_table = esc_sql( GrayFox_DB::get_table( 'knowledge_base' ) );
@@ -256,8 +334,6 @@ class GrayFox_Admin {
 	 * AJAX: Re-queue a failed KB document for processing.
 	 */
 	public function handle_retry_kb_document(): void {
-		check_ajax_referer( 'grayfox_retry_kb_document' );
-
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( __( 'Unauthorized.', 'kbfox' ), 403 );
 		}
@@ -266,6 +342,8 @@ class GrayFox_Admin {
 		if ( ! $doc_id ) {
 			wp_send_json_error( __( 'Invalid document ID.', 'kbfox' ) );
 		}
+
+		check_ajax_referer( 'grayfox_retry_kb_document_' . $doc_id );
 
 		global $wpdb;
 		$kb_table = esc_sql( GrayFox_DB::get_table( 'knowledge_base' ) );
@@ -292,8 +370,6 @@ class GrayFox_Admin {
 	 * AJAX: Resolve a KB document conflict.
 	 */
 	public function handle_resolve_conflict(): void {
-		check_ajax_referer( 'grayfox_resolve_conflict' );
-
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( __( 'Unauthorized.', 'kbfox' ), 403 );
 		}
@@ -305,6 +381,8 @@ class GrayFox_Admin {
 		if ( ! $new_doc_id || ! $old_doc_id || ! in_array( $resolution, array( 'keep_new', 'keep_old', 'keep_both' ), true ) ) {
 			wp_send_json_error( __( 'Invalid parameters.', 'kbfox' ) );
 		}
+
+		check_ajax_referer( 'grayfox_resolve_conflict_' . $new_doc_id . '_' . $old_doc_id );
 
 		global $wpdb;
 		$kb_table = esc_sql( GrayFox_DB::get_table( 'knowledge_base' ) );
@@ -350,8 +428,6 @@ class GrayFox_Admin {
 	 * AJAX: Get a plain-English diff between two conflicting KB documents.
 	 */
 	public function handle_get_conflict_diff(): void {
-		check_ajax_referer( 'grayfox_get_conflict_diff' );
-
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( __( 'Unauthorized.', 'kbfox' ), 403 );
 		}
@@ -362,6 +438,8 @@ class GrayFox_Admin {
 		if ( ! $new_doc_id || ! $old_doc_id ) {
 			wp_send_json_error( __( 'Invalid document IDs.', 'kbfox' ) );
 		}
+
+		check_ajax_referer( 'grayfox_get_conflict_diff_' . $new_doc_id . '_' . $old_doc_id );
 
 		global $wpdb;
 		$kb_table = esc_sql( GrayFox_DB::get_table( 'knowledge_base' ) );
@@ -404,3 +482,4 @@ class GrayFox_Admin {
 	}
 
 }
+} // end class_exists GrayFox_Admin

@@ -14,6 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Singleton that wires all plugin components together.
  */
+if ( ! class_exists( 'GrayFox_Plugin' ) ) {
 class GrayFox_Plugin {
 
 	/**
@@ -48,28 +49,25 @@ class GrayFox_Plugin {
 	private function __construct() {
 		$this->loader = new GrayFox_Loader();
 
-		// Run dbDelta for schema upgrades on existing installs.
-		if ( get_option( 'grayfox_db_version', '1.0.0' ) !== '1.3.0' ) {
-			GrayFox_DB::create_tables();
-			update_option( 'grayfox_db_version', '1.3.0' );
-		}
-
 		$db        = new GrayFox_DB();
-		$settings  = new GrayFox_Settings();
 		$widget    = new GrayFox_Widget();
 		$shortcode = new GrayFox_Shortcode();
-		$admin     = new GrayFox_Admin();
 		$chat      = new GrayFox_Chat();
 		$rag       = GrayFox_RAG::get_instance();
 		$rest_api  = new GrayFox_REST_API();
 
-		$settings->register( $this->loader );
 		$widget->register( $this->loader );
 		$shortcode->register( $this->loader );
-		$admin->register( $this->loader );
 		$chat->register( $this->loader );
 		$rag->register( $this->loader );
 		$rest_api->register( $this->loader );
+
+		if ( is_admin() ) {
+			$settings = new GrayFox_Settings();
+			$admin    = new GrayFox_Admin();
+			$settings->register( $this->loader );
+			$admin->register( $this->loader );
+		}
 
 		$this->loader->run();
 	}
@@ -92,3 +90,4 @@ class GrayFox_Plugin {
 		return GRAYFOX_PATH;
 	}
 }
+} // end class_exists GrayFox_Plugin

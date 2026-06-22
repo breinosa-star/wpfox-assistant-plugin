@@ -14,13 +14,13 @@ if ( ! current_user_can( 'manage_options' ) ) {
 }
 
 global $wpdb;
-$grayfox_kb_table = esc_sql( GrayFox_DB::get_table( 'knowledge_base' ) );
+$grayfox_kb_table = GrayFox_DB::get_table( 'knowledge_base' );
 
 // Fetch all knowledge base entries.
-$grayfox_entries = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-	"SELECT id, source_type, source_id, source_name, content_json, token_estimate, last_processed_at, status, topic_index, created_at FROM `{$grayfox_kb_table}` ORDER BY created_at DESC", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-	ARRAY_A
-);
+$grayfox_entries = $wpdb->get_results( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+	"SELECT id, source_type, source_id, source_name, content_json, token_estimate, last_processed_at, status, topic_index, created_at FROM %i ORDER BY created_at DESC",
+	$grayfox_kb_table
+), ARRAY_A );
 
 $grayfox_count         = count( $grayfox_entries );
 $grayfox_pending_count = count( array_filter( $grayfox_entries, fn( $e ) => 'active' !== $e['status'] ) );
@@ -195,14 +195,14 @@ if ( $grayfox_show_onboarding ) {
 							<button type="button"
 									class="button button-small grayfox-delete-doc"
 									data-id="<?php echo esc_attr( $grayfox_entry['id'] ); ?>"
-									data-nonce="<?php echo esc_attr( wp_create_nonce( 'grayfox_delete_kb_document' ) ); ?>">
+									data-nonce="<?php echo esc_attr( wp_create_nonce( 'grayfox_delete_kb_document_' . $grayfox_entry['id'] ) ); ?>">
 								<?php esc_html_e( 'Delete', 'kbfox' ); ?>
 							</button>
 							<?php if ( $grayfox_has_error ) : ?>
 								<button type="button"
 										class="button button-small grayfox-retry-doc"
 										data-id="<?php echo esc_attr( $grayfox_entry['id'] ); ?>"
-										data-nonce="<?php echo esc_attr( wp_create_nonce( 'grayfox_retry_kb_document' ) ); ?>"
+										data-nonce="<?php echo esc_attr( wp_create_nonce( 'grayfox_retry_kb_document_' . $grayfox_entry['id'] ) ); ?>"
 										style="margin-left:4px;">
 									<?php esc_html_e( 'Retry', 'kbfox' ); ?>
 								</button>
@@ -223,8 +223,8 @@ if ( $grayfox_show_onboarding ) {
 			if ( ! $grayfox_new_id || ! $grayfox_old_id ) continue;
 
 			// Fetch content_json for both.
-			$grayfox_new_row = $wpdb->get_row( $wpdb->prepare( "SELECT source_name, content_json FROM `{$grayfox_kb_table}` WHERE id = %d", $grayfox_new_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$grayfox_old_row = $wpdb->get_row( $wpdb->prepare( "SELECT source_name, content_json FROM `{$grayfox_kb_table}` WHERE id = %d", $grayfox_old_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$grayfox_new_row = $wpdb->get_row( $wpdb->prepare( "SELECT source_name, content_json FROM %i WHERE id = %d", $grayfox_kb_table, $grayfox_new_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$grayfox_old_row = $wpdb->get_row( $wpdb->prepare( "SELECT source_name, content_json FROM %i WHERE id = %d", $grayfox_kb_table, $grayfox_old_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			if ( ! $grayfox_new_row || ! $grayfox_old_row ) continue;
 		?>
 			<div class="grayfox-conflict-panel" id="grayfox-conflict-<?php echo esc_attr( "{$grayfox_new_id}-{$grayfox_old_id}" ); ?>">
@@ -255,7 +255,7 @@ if ( $grayfox_show_onboarding ) {
 							data-new-id="<?php echo esc_attr( $grayfox_new_id ); ?>"
 							data-old-id="<?php echo esc_attr( $grayfox_old_id ); ?>"
 							data-resolution="keep_new"
-							data-nonce="<?php echo esc_attr( wp_create_nonce( 'grayfox_resolve_conflict' ) ); ?>">
+							data-nonce="<?php echo esc_attr( wp_create_nonce( 'grayfox_resolve_conflict_' . $grayfox_new_id . '_' . $grayfox_old_id ) ); ?>">
 						<?php esc_html_e( 'Keep New', 'kbfox' ); ?>
 					</button>
 					<button type="button"
@@ -263,7 +263,7 @@ if ( $grayfox_show_onboarding ) {
 							data-new-id="<?php echo esc_attr( $grayfox_new_id ); ?>"
 							data-old-id="<?php echo esc_attr( $grayfox_old_id ); ?>"
 							data-resolution="keep_old"
-							data-nonce="<?php echo esc_attr( wp_create_nonce( 'grayfox_resolve_conflict' ) ); ?>">
+							data-nonce="<?php echo esc_attr( wp_create_nonce( 'grayfox_resolve_conflict_' . $grayfox_new_id . '_' . $grayfox_old_id ) ); ?>">
 						<?php esc_html_e( 'Keep Old', 'kbfox' ); ?>
 					</button>
 					<button type="button"
@@ -271,14 +271,14 @@ if ( $grayfox_show_onboarding ) {
 							data-new-id="<?php echo esc_attr( $grayfox_new_id ); ?>"
 							data-old-id="<?php echo esc_attr( $grayfox_old_id ); ?>"
 							data-resolution="keep_both"
-							data-nonce="<?php echo esc_attr( wp_create_nonce( 'grayfox_resolve_conflict' ) ); ?>">
+							data-nonce="<?php echo esc_attr( wp_create_nonce( 'grayfox_resolve_conflict_' . $grayfox_new_id . '_' . $grayfox_old_id ) ); ?>">
 						<?php esc_html_e( 'Keep Both', 'kbfox' ); ?>
 					</button>
 					<button type="button"
 							class="button button-secondary grayfox-get-diff"
 							data-new-id="<?php echo esc_attr( $grayfox_new_id ); ?>"
 							data-old-id="<?php echo esc_attr( $grayfox_old_id ); ?>"
-							data-nonce="<?php echo esc_attr( wp_create_nonce( 'grayfox_get_conflict_diff' ) ); ?>">
+							data-nonce="<?php echo esc_attr( wp_create_nonce( 'grayfox_get_conflict_diff_' . $grayfox_new_id . '_' . $grayfox_old_id ) ); ?>">
 						<?php esc_html_e( 'Load AI Diff', 'kbfox' ); ?>
 					</button>
 					<span class="grayfox-diff-result" id="grayfox-diff-<?php echo esc_attr( "{$grayfox_new_id}-{$grayfox_old_id}" ); ?>" style="font-style:italic;font-size:13px;margin-left:4px;"></span>
@@ -287,133 +287,3 @@ if ( $grayfox_show_onboarding ) {
 		<?php endforeach; ?>
 	<?php endif; ?>
 </div>
-
-<script>
-(function() {
-	var ajaxUrl = <?php echo wp_json_encode( admin_url( 'admin-ajax.php' ) ); ?>;
-
-	// ---- Delete document ----
-	document.querySelectorAll('.grayfox-delete-doc').forEach(function(btn) {
-		btn.addEventListener('click', function() {
-			if (!confirm(<?php echo wp_json_encode( __( 'Delete this document? This cannot be undone.', 'kbfox' ) ); ?>)) return;
-			var id = this.dataset.id;
-			var nonce = this.dataset.nonce;
-			var row = document.getElementById('grayfox-kb-row-' + id);
-			btn.disabled = true;
-
-			var data = new FormData();
-			data.append('action', 'grayfox_delete_kb_document');
-			data.append('id', id);
-			data.append('_ajax_nonce', nonce);
-
-			fetch(ajaxUrl, {method:'POST', body:data})
-				.then(function(r){return r.json();})
-				.then(function(resp){
-					if (resp.success) {
-						if (row) row.remove();
-					} else {
-						alert(resp.data || <?php echo wp_json_encode( __( 'Delete failed.', 'kbfox' ) ); ?>);
-						btn.disabled = false;
-					}
-				})
-				.catch(function(){
-					alert(<?php echo wp_json_encode( __( 'Network error.', 'kbfox' ) ); ?>);
-					btn.disabled = false;
-				});
-		});
-	});
-
-	// ---- Retry document ----
-	document.querySelectorAll('.grayfox-retry-doc').forEach(function(btn) {
-		btn.addEventListener('click', function() {
-			var id = this.dataset.id;
-			var nonce = this.dataset.nonce;
-			btn.disabled = true;
-			btn.textContent = <?php echo wp_json_encode( __( 'Queuing…', 'kbfox' ) ); ?>;
-
-			var data = new FormData();
-			data.append('action', 'grayfox_retry_kb_document');
-			data.append('id', id);
-			data.append('_ajax_nonce', nonce);
-
-			fetch(ajaxUrl, {method:'POST', body:data})
-				.then(function(r){return r.json();})
-				.then(function(resp){
-					if (resp.success) {
-						btn.textContent = <?php echo wp_json_encode( __( 'Queued!', 'kbfox' ) ); ?>;
-					} else {
-						alert(resp.data || <?php echo wp_json_encode( __( 'Retry failed.', 'kbfox' ) ); ?>);
-						btn.disabled = false;
-						btn.textContent = <?php echo wp_json_encode( __( 'Retry', 'kbfox' ) ); ?>;
-					}
-				});
-		});
-	});
-
-	// ---- Resolve conflict ----
-	document.querySelectorAll('.grayfox-resolve-conflict').forEach(function(btn) {
-		btn.addEventListener('click', function() {
-			var newId = this.dataset.newId;
-			var oldId = this.dataset.oldId;
-			var resolution = this.dataset.resolution;
-			var nonce = this.dataset.nonce;
-			var panel = document.getElementById('grayfox-conflict-' + newId + '-' + oldId);
-
-			if (!confirm(<?php echo wp_json_encode( __( 'Apply this resolution? This cannot be undone.', 'kbfox' ) ); ?>)) return;
-			btn.disabled = true;
-
-			var data = new FormData();
-			data.append('action', 'grayfox_resolve_conflict');
-			data.append('new_doc_id', newId);
-			data.append('old_doc_id', oldId);
-			data.append('resolution', resolution);
-			data.append('_ajax_nonce', nonce);
-
-			fetch(ajaxUrl, {method:'POST', body:data})
-				.then(function(r){return r.json();})
-				.then(function(resp){
-					if (resp.success) {
-						if (panel) panel.remove();
-						window.location.reload();
-					} else {
-						alert(resp.data || <?php echo wp_json_encode( __( 'Resolution failed.', 'kbfox' ) ); ?>);
-						btn.disabled = false;
-					}
-				});
-		});
-	});
-
-	// ---- Load AI diff ----
-	document.querySelectorAll('.grayfox-get-diff').forEach(function(btn) {
-		btn.addEventListener('click', function() {
-			var newId = this.dataset.newId;
-			var oldId = this.dataset.oldId;
-			var nonce = this.dataset.nonce;
-			var result = document.getElementById('grayfox-diff-' + newId + '-' + oldId);
-			btn.disabled = true;
-			if (result) result.textContent = <?php echo wp_json_encode( __( 'Loading…', 'kbfox' ) ); ?>;
-
-			var data = new FormData();
-			data.append('action', 'grayfox_get_conflict_diff');
-			data.append('new_doc_id', newId);
-			data.append('old_doc_id', oldId);
-			data.append('_ajax_nonce', nonce);
-
-			fetch(ajaxUrl, {method:'POST', body:data})
-				.then(function(r){return r.json();})
-				.then(function(resp){
-					btn.disabled = false;
-					if (resp.success && resp.data) {
-						if (result) result.textContent = resp.data.diff || '';
-					} else {
-						if (result) result.textContent = resp.data || <?php echo wp_json_encode( __( 'Failed to load diff.', 'kbfox' ) ); ?>;
-					}
-				})
-				.catch(function(){
-					btn.disabled = false;
-					if (result) result.textContent = <?php echo wp_json_encode( __( 'Network error.', 'kbfox' ) ); ?>;
-				});
-		});
-	});
-})();
-</script>

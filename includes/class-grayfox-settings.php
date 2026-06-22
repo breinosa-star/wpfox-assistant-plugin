@@ -14,6 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Registers the GrayFox settings admin subpage and handles option sanitization.
  */
+if ( ! class_exists( 'GrayFox_Settings' ) ) {
 class GrayFox_Settings {
 
 	/**
@@ -268,7 +269,7 @@ class GrayFox_Settings {
 
 		register_setting( self::OPTION_GROUP, 'grayfox_public_kb_api_enabled', array(
 			'type'              => 'boolean',
-			'sanitize_callback' => array( $this, 'sanitize_checkbox' ),
+			'sanitize_callback' => 'rest_sanitize_boolean',
 			'default'           => false,
 		) );
 
@@ -360,22 +361,6 @@ class GrayFox_Settings {
 		<p class="description">
 			<?php esc_html_e( 'Stored encrypted. Leave blank to keep existing key.', 'kbfox' ); ?>
 		</p>
-		<script>
-		(function() {
-			var toggleBtn = document.getElementById('grayfox-toggle-key');
-			var keyField  = document.getElementById('grayfox_llm_api_key');
-			if (!toggleBtn || !keyField) return;
-			toggleBtn.addEventListener('click', function() {
-				if (keyField.type === 'password') {
-					keyField.type = 'text';
-					toggleBtn.textContent = '<?php echo esc_js( __( 'Hide', 'kbfox' ) ); ?>';
-				} else {
-					keyField.type = 'password';
-					toggleBtn.textContent = '<?php echo esc_js( __( 'Show', 'kbfox' ) ); ?>';
-				}
-			});
-		})();
-		</script>
 		<?php
 	}
 
@@ -490,7 +475,6 @@ class GrayFox_Settings {
 		$saved_model  = get_option( 'grayfox_llm_model', '' );
 		$saved_prov   = get_option( 'grayfox_llm_provider', 'openai' );
 		$all_models   = self::get_models_by_provider();
-		$models_json  = wp_json_encode( $all_models );
 		?>
 		<select id="grayfox_llm_model" name="grayfox_llm_model">
 			<?php
@@ -502,68 +486,11 @@ class GrayFox_Settings {
 				</option>
 			<?php endforeach; ?>
 		</select>
-		<button type="button" id="grayfox-test-llm" class="button button-secondary" style="margin-left:8px;">
+		<button type="button" id="grayfox-test-llm" class="button button-secondary" style="margin-left:8px;"
+			data-nonce="<?php echo esc_attr( wp_create_nonce( 'grayfox_test_llm' ) ); ?>">
 			<?php esc_html_e( 'Test Connection', 'kbfox' ); ?>
 		</button>
 		<span id="grayfox-test-llm-result" style="margin-left:8px;"></span>
-		<script>
-		(function() {
-			var allModels  = <?php echo $models_json; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>;
-			var provSelect = document.getElementById('grayfox_llm_provider');
-			var mdlSelect  = document.getElementById('grayfox_llm_model');
-			var savedModel = <?php echo wp_json_encode( $saved_model ); ?>;
-
-			function populateModels(provider) {
-				var models = allModels[provider] || {};
-				mdlSelect.innerHTML = '';
-				Object.keys(models).forEach(function(id) {
-					var opt = document.createElement('option');
-					opt.value = id;
-					opt.textContent = models[id];
-					if (id === savedModel) opt.selected = true;
-					mdlSelect.appendChild(opt);
-				});
-			}
-
-			if (provSelect) {
-				provSelect.addEventListener('change', function() {
-					savedModel = ''; // clear saved preference on provider switch
-					populateModels(this.value);
-				});
-			}
-
-			var btn = document.getElementById('grayfox-test-llm');
-			if (!btn) return;
-			btn.addEventListener('click', function() {
-				var result = document.getElementById('grayfox-test-llm-result');
-				result.textContent = '<?php echo esc_js( __( 'Testing...', 'kbfox' ) ); ?>';
-				result.style.color = '#666';
-				btn.disabled = true;
-
-				var data = new FormData();
-				data.append('action', 'grayfox_test_llm');
-				data.append('_wpnonce', '<?php echo esc_js( wp_create_nonce( 'grayfox_test_llm' ) ); ?>');
-
-				fetch(ajaxurl, { method: 'POST', body: data })
-					.then(function(r) { return r.json(); })
-					.then(function(resp) {
-						btn.disabled = false;
-						if (resp.success) {
-							result.textContent = resp.data.message || '<?php echo esc_js( __( 'Connected!', 'kbfox' ) ); ?>';
-							result.style.color = 'green';
-						} else {
-							result.textContent = resp.data || '<?php echo esc_js( __( 'Connection failed.', 'kbfox' ) ); ?>';
-							result.style.color = 'red';
-						}
-					})
-					.catch(function() {
-						btn.disabled = false;
-						result.textContent = '<?php echo esc_js( __( 'Network error.', 'kbfox' ) ); ?>';
-						result.style.color = 'red';
-					});
-			});
-		})();
-		</script>
 		<?php
 	}
 
@@ -606,15 +533,6 @@ class GrayFox_Settings {
 			   name="grayfox_widget_color"
 			   value="<?php echo esc_attr( $value ); ?>" />
 		<code id="grayfox-color-display"><?php echo esc_html( $value ); ?></code>
-		<script>
-		(function() {
-			var input = document.getElementById('grayfox_widget_color');
-			var display = document.getElementById('grayfox-color-display');
-			if (input && display) {
-				input.addEventListener('input', function() { display.textContent = input.value; });
-			}
-		})();
-		</script>
 		<?php
 	}
 
@@ -748,17 +666,6 @@ class GrayFox_Settings {
 		<p class="description">
 			<?php esc_html_e( 'Maximum new chat sessions an IP address may start within 24 hours. Range: 1–25. Default: 10.', 'kbfox' ); ?>
 		</p>
-		<script>
-		(function() {
-			document.querySelectorAll('.grayfox-restore-default').forEach(function(link) {
-				link.addEventListener('click', function(e) {
-					e.preventDefault();
-					var input = document.getElementById(this.dataset.target);
-					if (input) input.value = this.dataset['default'];
-				});
-			});
-		})();
-		</script>
 		<?php
 	}
 
@@ -793,20 +700,6 @@ class GrayFox_Settings {
 				</td>
 			</tr>
 		</table>
-		<script>
-		(function() {
-			document.querySelectorAll('.grayfox-copy-url').forEach(function(btn) {
-				btn.addEventListener('click', function() {
-					navigator.clipboard.writeText(this.dataset.url).then(function() {
-						btn.textContent = '<?php echo esc_js( __( 'Copied!', 'kbfox' ) ); ?>';
-						setTimeout(function() {
-							btn.textContent = '<?php echo esc_js( __( 'Copy', 'kbfox' ) ); ?>';
-						}, 2000);
-					});
-				});
-			});
-		})();
-		</script>
 		<?php endif; ?>
 		<?php
 	}
@@ -880,7 +773,7 @@ class GrayFox_Settings {
 	 */
 	public function sanitize_llm_model( string $input ): string {
 		$input    = sanitize_text_field( $input );
-		$provider = sanitize_text_field( wp_unslash( $_POST['grayfox_llm_provider'] ?? get_option( 'grayfox_llm_provider', 'openai' ) ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$provider = get_option( 'grayfox_llm_provider', 'openai' );
 		$models   = self::get_models_by_provider();
 		$allowed  = array_keys( $models[ $provider ] ?? array() );
 		if ( in_array( $input, $allowed, true ) ) {
@@ -1129,3 +1022,4 @@ class GrayFox_Settings {
 		);
 	}
 }
+} // end class_exists GrayFox_Settings

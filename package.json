@@ -18,7 +18,14 @@
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:happy": "playwright test --grep \"Happy Path\"",
     "test:e2e:edge": "playwright test --grep \"Edge Cases\"",
-    "test:e2e:report": "playwright show-report tests/e2e/report"
+    "test:e2e:report": "playwright show-report tests/e2e/report",
+    "test:remote": "playwright test --config playwright.remote.config.js",
+    "test:remote:headed": "playwright test --config playwright.remote.config.js --headed",
+    "check:ip": "node scripts/check-ip-status.js",
+    "docker:up": "docker compose -f tests/docker-compose.yml up -d",
+    "docker:setup": "docker compose -f tests/docker-compose.yml run --rm setup",
+    "docker:down": "docker compose -f tests/docker-compose.yml down",
+    "docker:reset": "docker compose -f tests/docker-compose.yml down -v"
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",

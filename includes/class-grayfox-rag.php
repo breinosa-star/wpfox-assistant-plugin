@@ -14,6 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Processes uploaded documents into a structured knowledge base via Action Scheduler.
  */
+if ( ! class_exists( 'GrayFox_RAG' ) ) {
 class GrayFox_RAG {
 
 	/**
@@ -182,9 +183,6 @@ class GrayFox_RAG {
 		if ( mb_strlen( $raw_text ) <= 60000 ) {
 			$content_json = $this->summarize_with_llm( $raw_text, $source_name );
 		} else {
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( 'GrayFox RAG: document "' . $source_name . '" exceeds 60k chars (' . mb_strlen( $raw_text ) . '), using chunked summarization.' ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			}
 			$content_json = $this->summarize_chunked( $raw_text, $source_name );
 		}
 
@@ -369,9 +367,6 @@ class GrayFox_RAG {
 		$result = $llm->request_json( $provider, $api_key, $model, $messages, 0.0 );
 
 		if ( empty( $result ) ) {
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( 'GrayFox RAG: LLM-as-retriever returned empty for query: ' . mb_substr( $query, 0, 100 ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			}
 			return array();
 		}
 
@@ -608,9 +603,6 @@ class GrayFox_RAG {
 		if ( mb_strlen( $text ) <= 60000 ) {
 			$content_json = $this->summarize_with_llm( $text, $source_name );
 		} else {
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( 'GrayFox RAG: document "' . $source_name . '" exceeds 60k chars (' . mb_strlen( $text ) . '), using chunked summarization.' ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			}
 			$content_json = $this->summarize_chunked( $text, $source_name );
 		}
 
@@ -852,16 +844,20 @@ class GrayFox_RAG {
 	 * @return string Extracted text, or sentinel values for PDF edge cases.
 	 */
 	private function extract_text( string $file_path, string $extension ): string {
+		global $wp_filesystem;
+		if ( ! $wp_filesystem ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+			WP_Filesystem();
+		}
+
 		switch ( $extension ) {
 			case 'txt':
 			case 'csv':
-				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-				$content = file_get_contents( $file_path );
+				$content = $wp_filesystem->get_contents( $file_path );
 				return ( false === $content ) ? '' : $content;
 
 			case 'md':
-				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-				$content = file_get_contents( $file_path );
+				$content = $wp_filesystem->get_contents( $file_path );
 				if ( false === $content ) {
 					return '';
 				}
@@ -907,9 +903,6 @@ class GrayFox_RAG {
 			$pdf    = $parser->parseFile( $file_path );
 			$text   = $pdf->getText();
 		} catch ( \Throwable $e ) {
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( 'GrayFox PDF parse error: ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			}
 			return '__PDF_NO_TEXT__';
 		}
 
@@ -982,9 +975,6 @@ class GrayFox_RAG {
 			$result = $this->summarize_with_llm( $chunk, $label );
 
 			if ( empty( $result ) ) {
-				if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-					error_log( 'GrayFox RAG: chunk ' . ( $i + 1 ) . '/' . $chunk_count . ' failed for "' . $source_name . '"' ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-				}
 				continue;
 			}
 
@@ -1041,20 +1031,15 @@ class GrayFox_RAG {
 		$result = $llm->request_json( $provider, $api_key, $model, $messages, 0.0 );
 
 		if ( empty( $result ) ) {
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( 'GrayFox summarize_with_llm: empty response for "' . $source_name . '" via ' . $provider ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			}
 			return '';
 		}
 
 		json_decode( $result );
 		if ( json_last_error() !== JSON_ERROR_NONE ) {
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( 'GrayFox summarize_with_llm: JSON parse failed for "' . $source_name . '" via ' . $provider . '. Response: ' . mb_substr( $result, 0, 200 ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			}
 			return '';
 		}
 
 		return $result;
 	}
 }
+} // end class_exists GrayFox_RAG

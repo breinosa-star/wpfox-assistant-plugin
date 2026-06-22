@@ -1,0 +1,102 @@
+# Docker Compose — KBFox E2E test environment.
+#
+# Provides a local WordPress instance that matches playwright.config.js:
+#   BASE_URL  → http://localhost:8080
+#   MySQL     → container named grayfox_db (required by global-setup.js)
+#
+# Quick start:
+#   cp tests/.env.example tests/.env   # add your GRAYFOX_API_KEY
+#   docker compose -f tests/docker-compose.yml up -d
+#   docker compose -f tests/docker-compose.yml run --rm setup
+#   npm run test:e2e
+#
+# npm convenience scripts (package.json):
+#   npm run docker:up     — start db + wordpress in the background
+#   npm run docker:setup  — install WP and activate the plugin (run once)
+#   npm run docker:down   — stop and remove containers
+#   npm run docker:reset  — docker:down + delete persistent volumes (clean slate)
+
+services:
+
+  # MySQL 8.0 — container must be named grayfox_db.
+  # global-setup.js calls: docker exec grayfox_db mysql -uwordpress -pwordpress wordpress
+  db:
+    image: mysql:8.0
+    container_name: grayfox_db
+    restart: unless-stopped
+    command: --require-secure-transport=OFF
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD: wordpress
+    volumes:
+      - grayfox_db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uwordpress", "-pwordpress"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # WordPress — accessible at http://localhost:8080 to match playwright.config.js.
+  # Plugin source is mounted read-only from the repo root (one level up from tests/).
+  wordpress:
+    image: wordpress:php8.2-apache
+    container_name: grayfox_wp
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:80"
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+      WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_DEBUG: "1"
+      WORDPRESS_CONFIG_EXTRA: |
+        define('WP_HOME', 'http://localhost:8080');
+        define('WP_SITEURL', 'http://localhost:8080');
+    volumes:
+      - grayfox_wp_data:/var/www/html
+      - ..:/var/www/html/wp-content/plugins/kbfox:ro
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "-o", "/dev/null", "http://localhost/"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  # One-shot setup — installs WordPress and activates + configures the plugin.
+  # Uses `profiles: [setup]` so `docker compose up` does NOT run it automatically.
+  # Invoke with: docker compose -f tests/docker-compose.yml run --rm setup
+  setup:
+    image: wordpress:cli-php8.2
+    container_name: grayfox_setup
+    restart: "no"
+    depends_on:
+      wordpress:
+        condition: service_healthy
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+      WORDPRESS_DB_NAME: wordpress
+      GRAYFOX_ADMIN_USER: ${GRAYFOX_ADMIN_USER:-admin}
+      GRAYFOX_ADMIN_PASS: ${GRAYFOX_ADMIN_PASS:-admin}
+      GRAYFOX_ADMIN_EMAIL: ${GRAYFOX_ADMIN_EMAIL:-admin@test.local}
+      GRAYFOX_LLM_PROVIDER: ${GRAYFOX_LLM_PROVIDER:-openai}
+      GRAYFOX_LLM_MODEL: ${GRAYFOX_LLM_MODEL:-gpt-4o-mini}
+      GRAYFOX_API_KEY: ${GRAYFOX_API_KEY:-}
+    volumes:
+      - grayfox_wp_data:/var/www/html
+      - ..:/var/www/html/wp-content/plugins/kbfox:ro
+      - ./docker/setup.sh:/setup.sh:ro
+    entrypoint: ["/bin/sh", "/setup.sh"]
+    profiles:
+      - setup
+
+volumes:
+  grayfox_db_data:
+  grayfox_wp_data:

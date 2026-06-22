@@ -29,9 +29,10 @@ async function sendMessage( ajaxUrl, nonce, sessionId, message ) {
 
 	if ( ! json.success ) {
 		const err = new Error( json.data && json.data.message ? json.data.message : 'Chat error' );
-		err.security = json.data && json.data.security || null;
-		err.strikes  = json.data && json.data.strikes  || 0;
-		err.status   = response.status;
+		err.security    = json.data && json.data.security    || null;
+		err.strikes     = json.data && json.data.strikes     || 0;
+		err.retryAfter  = json.data && json.data.retry_after || 0;
+		err.status      = response.status;
 		throw err;
 	}
 

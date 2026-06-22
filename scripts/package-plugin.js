@@ -212,6 +212,8 @@ const ALWAYS_EXCLUDE = [
 	'.idea',
 	'package.json',
 	'package-lock.json',
+	'playwright.config.js',
+	'playwright.remote.config.js',
 	'composer.lock',
 	'docker-compose.yml',
 	'phpunit.xml',
@@ -264,10 +266,8 @@ try {
 
 const bytes = fs.statSync(outFile).size;
 const kb    = (bytes / 1024).toFixed(1);
-const count = parseInt(
-	execSync(`unzip -l "${outFile}" | tail -1`).toString().trim().split(/\s+/)[0],
-	10
-);
+const lastLine = execSync(`unzip -l "${outFile}" | tail -1`).toString().trim();
+const count    = parseInt(lastLine.split(/\s+/).filter(Boolean).slice(-2)[0], 10);
 
 console.log(`\n✓ Done: builds/${PLUGIN_NAME}-${VERSION}.zip`);
 console.log(`  Size:  ${kb} KB`);

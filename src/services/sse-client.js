@@ -11,17 +11,18 @@ const MAX_RETRIES        = 3;
  * @param {string} streamUrl
  */
 function SSEClient( sessionId, streamToken, streamUrl ) {
-	this.sessionId           = sessionId;
-	this.streamToken         = streamToken;
-	this.streamUrl           = streamUrl;
-	this.eventSource         = null;
-	this.messageCallback     = null;
-	this.errorCallback       = null;
-	this.retryCount          = 0;
-	this.maxRetries          = MAX_RETRIES;
-	this.closed              = false;
+	this.sessionId            = sessionId;
+	this.streamToken          = streamToken;
+	this.streamUrl            = streamUrl;
+	this.eventSource          = null;
+	this.messageCallback      = null;
+	this.errorCallback        = null;
+	this.retryCount           = 0;
+	this.maxRetries           = MAX_RETRIES;
+	this.closed               = false;
 	this.receivedFirstMessage = false;
-	this.connectTimer        = null;
+	this.connectTimer         = null;
+	this._tokenBuffer         = null; // non-null while buffering during thinking delay
 }
 
 SSEClient.prototype.connect = function () {
@@ -60,15 +61,42 @@ SSEClient.prototype.connect = function () {
 
 		try {
 			const parsed = JSON.parse( raw );
+
 			if ( parsed.type === 'error' ) {
 				self.errorCallback && self.errorCallback( parsed );
 				self.close();
 				return;
 			}
+
+			// thinking_ms: hold typing indicator, buffer tokens, flush after delay.
+			if ( parsed.thinking_ms ) {
+				self._tokenBuffer = [];
+				setTimeout( function () {
+					const buf = self._tokenBuffer;
+					self._tokenBuffer = null;
+					if ( buf ) {
+						buf.forEach( function ( msg ) {
+							self.messageCallback && self.messageCallback( msg );
+						} );
+					}
+				}, parsed.thinking_ms );
+				return;
+			}
+
+			if ( self._tokenBuffer !== null ) {
+				self._tokenBuffer.push( parsed );
+				return;
+			}
+
 			self.messageCallback && self.messageCallback( parsed );
 		} catch {
 			// Plain token string, not JSON.
-			self.messageCallback && self.messageCallback( { type: 'token', token: raw } );
+			const msg = { type: 'token', token: raw };
+			if ( self._tokenBuffer !== null ) {
+				self._tokenBuffer.push( msg );
+			} else {
+				self.messageCallback && self.messageCallback( msg );
+			}
 		}
 	};
 

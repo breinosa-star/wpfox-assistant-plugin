@@ -14,6 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Enqueues front-end assets and renders the floating chat bubble via wp_footer.
  */
+if ( ! class_exists( 'GrayFox_Widget' ) ) {
 class GrayFox_Widget {
 
 	/**
@@ -89,3 +90,4 @@ class GrayFox_Widget {
 		include GRAYFOX_PATH . 'templates/chat-widget.php';
 	}
 }
+} // end class_exists GrayFox_Widget

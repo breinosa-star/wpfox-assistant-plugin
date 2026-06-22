@@ -14,6 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Registers the [grayfox_chat] shortcode and renders the inline embed.
  */
+if ( ! class_exists( 'GrayFox_Shortcode' ) ) {
 class GrayFox_Shortcode {
 
 	/**
@@ -105,3 +106,4 @@ class GrayFox_Shortcode {
 		$this->enqueued = true;
 	}
 }
+} // end class_exists GrayFox_Shortcode

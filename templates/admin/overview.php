@@ -12,42 +12,48 @@ if ( ! defined( 'ABSPATH' ) ) {
 global $wpdb;
 
 // Fetch stats.
-$grayfox_conv_table     = esc_sql( GrayFox_DB::get_table( 'conversations' ) );
-$grayfox_kb_table       = esc_sql( GrayFox_DB::get_table( 'knowledge_base' ) );
-$grayfox_msg_table      = esc_sql( GrayFox_DB::get_table( 'messages' ) );
+$grayfox_conv_table     = GrayFox_DB::get_table( 'conversations' );
+$grayfox_kb_table       = GrayFox_DB::get_table( 'knowledge_base' );
+$grayfox_msg_table      = GrayFox_DB::get_table( 'messages' );
 $grayfox_seven_days_ago = gmdate( 'Y-m-d H:i:s', strtotime( '-7 days' ) );
 
 $grayfox_conv_count_7d = (int) $wpdb->get_var( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-	"SELECT COUNT(*) FROM `{$grayfox_conv_table}` WHERE started_at >= %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	"SELECT COUNT(*) FROM %i WHERE started_at >= %s",
+	$grayfox_conv_table,
 	$grayfox_seven_days_ago
 ) );
 
-$grayfox_doc_count = (int) $wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-	"SELECT COUNT(*) FROM `{$grayfox_kb_table}`" // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-);
+$grayfox_doc_count = (int) $wpdb->get_var( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+	"SELECT COUNT(*) FROM %i",
+	$grayfox_kb_table
+) );
 
 $grayfox_widget_enabled = get_option( 'grayfox_enable_widget', true );
 $grayfox_api_enabled    = (bool) get_option( 'grayfox_public_kb_api_enabled', false );
 
 // API usage stats (last 7 days).
 $grayfox_api_stats     = null;
-$grayfox_api_log_table = esc_sql( GrayFox_DB::get_table( 'api_log' ) );
+$grayfox_api_log_table = GrayFox_DB::get_table( 'api_log' );
 $grayfox_table_exists  = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $grayfox_api_log_table ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 if ( $grayfox_table_exists ) {
 	$grayfox_api_total = (int) $wpdb->get_var( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		"SELECT COUNT(*) FROM `{$grayfox_api_log_table}` WHERE created_at >= %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		"SELECT COUNT(*) FROM %i WHERE created_at >= %s",
+		$grayfox_api_log_table,
 		$grayfox_seven_days_ago
 	) );
 	$grayfox_api_ai_calls = (int) $wpdb->get_var( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		"SELECT COUNT(*) FROM `{$grayfox_api_log_table}` WHERE created_at >= %s AND is_ai_agent = 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		"SELECT COUNT(*) FROM %i WHERE created_at >= %s AND is_ai_agent = 1",
+		$grayfox_api_log_table,
 		$grayfox_seven_days_ago
 	) );
 	$grayfox_api_avg_time = (int) $wpdb->get_var( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		"SELECT AVG(response_time_ms) FROM `{$grayfox_api_log_table}` WHERE created_at >= %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		"SELECT AVG(response_time_ms) FROM %i WHERE created_at >= %s",
+		$grayfox_api_log_table,
 		$grayfox_seven_days_ago
 	) );
 	$grayfox_api_top_queries = $wpdb->get_col( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		"SELECT query FROM `{$grayfox_api_log_table}` WHERE created_at >= %s AND query != '' GROUP BY query ORDER BY COUNT(*) DESC LIMIT 3", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		"SELECT query FROM %i WHERE created_at >= %s AND query != '' GROUP BY query ORDER BY COUNT(*) DESC LIMIT 3",
+		$grayfox_api_log_table,
 		$grayfox_seven_days_ago
 	) );
 	$grayfox_api_stats = array(

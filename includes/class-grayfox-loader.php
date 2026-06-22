@@ -14,6 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Maintains lists of actions and filters, then registers them with WordPress.
  */
+if ( ! class_exists( 'GrayFox_Loader' ) ) {
 class GrayFox_Loader {
 
 	/**
@@ -101,3 +102,4 @@ class GrayFox_Loader {
 		}
 	}
 }
+} // end class_exists GrayFox_Loader

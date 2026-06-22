@@ -17,6 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Class GrayFox_REST_API
  */
+if ( ! class_exists( 'GrayFox_REST_API' ) ) {
 class GrayFox_REST_API {
 
 	/**
@@ -209,9 +210,9 @@ class GrayFox_REST_API {
 			exit;
 		}
 
-		$site_name    = get_bloginfo( 'name' );
-		$site_desc    = get_bloginfo( 'description' );
-		$endpoint_url = rest_url( 'grayfox/v1/kb' );
+		$site_name    = wp_strip_all_tags( get_bloginfo( 'name' ) );
+		$site_desc    = wp_strip_all_tags( get_bloginfo( 'description' ) );
+		$endpoint_url = esc_url_raw( rest_url( 'grayfox/v1/kb' ) );
 
 		$lines = array();
 		$lines[] = '# ' . $site_name;
@@ -239,8 +240,7 @@ class GrayFox_REST_API {
 
 		header( 'Content-Type: text/plain; charset=utf-8' );
 		header( 'X-Robots-Tag: noindex' );
-		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-		echo implode( "\n", $lines );
+		echo implode( "\n", $lines ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- text/plain response; values sanitized above
 		exit;
 	}
 
@@ -293,21 +293,28 @@ class GrayFox_REST_API {
 	}
 
 	/**
-	 * Get the client IP address, respecting common proxy headers.
+	 * Get the client IP address.
+	 *
+	 * Only trusts CF-Connecting-IP when CF-Visitor is also present, confirming
+	 * the request actually transited Cloudflare. All other proxy headers are
+	 * ignored — they can be forged to bypass rate limiting.
 	 *
 	 * @return string
 	 */
 	private function get_client_ip(): string {
-		foreach ( array( 'HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'REMOTE_ADDR' ) as $key ) {
-			if ( ! empty( $_SERVER[ $key ] ) ) {
-				$ip = sanitize_text_field( wp_unslash( $_SERVER[ $key ] ) );
-				// X-Forwarded-For can be a comma-separated list; take the first.
-				$ip = trim( explode( ',', $ip )[0] );
-				if ( filter_var( $ip, FILTER_VALIDATE_IP ) ) {
-					return $ip;
-				}
+		if (
+			! empty( $_SERVER['HTTP_CF_VISITOR'] ) &&
+			! empty( $_SERVER['HTTP_CF_CONNECTING_IP'] )
+		) {
+			$ip = sanitize_text_field( wp_unslash( $_SERVER['HTTP_CF_CONNECTING_IP'] ) );
+			if ( filter_var( $ip, FILTER_VALIDATE_IP ) ) {
+				return $ip;
 			}
 		}
-		return '0.0.0.0';
+
+		return isset( $_SERVER['REMOTE_ADDR'] )
+			? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) )
+			: '0.0.0.0';
 	}
 }
+} // end class_exists GrayFox_REST_API

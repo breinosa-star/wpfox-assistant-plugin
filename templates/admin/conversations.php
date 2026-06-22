@@ -45,9 +45,23 @@ $grayfox_conversations = $wpdb->get_results( $wpdb->prepare( // phpcs:ignore Wor
 	$grayfox_date_from,
 	$grayfox_date_to
 ), ARRAY_A );
+
+// Fetch leads: conversations with at least a name or email, filtered by the same date range.
+$grayfox_leads = $wpdb->get_results( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+	"SELECT id, visitor_name, visitor_email, started_at, last_active_at, message_count
+	 FROM %i
+	 WHERE started_at >= %s AND started_at <= %s
+	   AND ( ( visitor_name IS NOT NULL AND visitor_name <> '' )
+	      OR ( visitor_email IS NOT NULL AND visitor_email <> '' ) )
+	 ORDER BY started_at DESC
+	 LIMIT 200",
+	$grayfox_conv_table,
+	$grayfox_date_from,
+	$grayfox_date_to
+), ARRAY_A );
 ?>
 <div class="wrap grayfox-admin-wrap">
-	<h1><?php esc_html_e( 'Conversations', 'kbfox' ); ?></h1>
+	<h1><?php esc_html_e( 'Interactions', 'kbfox' ); ?></h1>
 
 	<!-- Date filter form -->
 	<form method="get" class="grayfox-date-filter">
@@ -130,25 +144,80 @@ $grayfox_conversations = $wpdb->get_results( $wpdb->prepare( // phpcs:ignore Wor
 			</tbody>
 		</table>
 
-		<script>
-		(function() {
-			var buttons = document.querySelectorAll('.grayfox-view-conv');
-			for (var i = 0; i < buttons.length; i++) {
-				buttons[i].addEventListener('click', function() {
-					var convId = this.getAttribute('data-conv-id');
-					var detail = document.getElementById('grayfox-conv-detail-' + convId);
-					if (detail) {
-						if (detail.style.display === 'none') {
-							detail.style.display = '';
-							this.textContent = '<?php echo esc_js( __( 'Hide Messages', 'kbfox' ) ); ?>';
-						} else {
-							detail.style.display = 'none';
-							this.textContent = '<?php echo esc_js( __( 'View Messages', 'kbfox' ) ); ?>';
-						}
-					}
-				});
-			}
-		})();
-		</script>
+	<?php endif; ?>
+
+	<hr style="margin:40px 0 24px;" />
+
+	<h2><?php esc_html_e( 'Leads', 'kbfox' ); ?></h2>
+	<p class="description"><?php esc_html_e( 'Visitors who shared their name or email during a conversation.', 'kbfox' ); ?></p>
+
+	<?php if ( empty( $grayfox_leads ) ) : ?>
+		<p><?php esc_html_e( 'No leads found for the selected period.', 'kbfox' ); ?></p>
+	<?php else : ?>
+		<table class="wp-list-table widefat fixed striped grayfox-leads-table">
+			<thead>
+				<tr>
+					<th><?php esc_html_e( 'Name', 'kbfox' ); ?></th>
+					<th><?php esc_html_e( 'Email', 'kbfox' ); ?></th>
+					<th><?php esc_html_e( 'Date', 'kbfox' ); ?></th>
+					<th><?php esc_html_e( 'Last Active', 'kbfox' ); ?></th>
+					<th><?php esc_html_e( 'Messages', 'kbfox' ); ?></th>
+					<th><?php esc_html_e( 'Actions', 'kbfox' ); ?></th>
+				</tr>
+			</thead>
+			<tbody>
+				<?php foreach ( $grayfox_leads as $grayfox_lead ) :
+					$grayfox_lead_id = (int) $grayfox_lead['id'];
+					?>
+					<tr>
+						<td><?php echo esc_html( $grayfox_lead['visitor_name'] ?: '—' ); ?></td>
+						<td>
+							<?php if ( ! empty( $grayfox_lead['visitor_email'] ) ) : ?>
+								<a href="mailto:<?php echo esc_attr( $grayfox_lead['visitor_email'] ); ?>">
+									<?php echo esc_html( $grayfox_lead['visitor_email'] ); ?>
+								</a>
+							<?php else : ?>
+								—
+							<?php endif; ?>
+						</td>
+						<td><?php echo esc_html( $grayfox_lead['started_at'] ); ?></td>
+						<td><?php echo esc_html( $grayfox_lead['last_active_at'] ?? '—' ); ?></td>
+						<td><?php echo esc_html( number_format_i18n( (int) $grayfox_lead['message_count'] ) ); ?></td>
+						<td>
+							<button type="button"
+									class="button button-small grayfox-view-conv"
+									data-conv-id="<?php echo esc_attr( $grayfox_lead_id ); ?>">
+								<?php esc_html_e( 'View Messages', 'kbfox' ); ?>
+							</button>
+						</td>
+					</tr>
+					<tr id="grayfox-conv-detail-<?php echo esc_attr( $grayfox_lead_id ); ?>"
+						class="grayfox-conv-detail"
+						style="display:none;">
+						<td colspan="6">
+							<?php
+							$grayfox_lead_messages = $wpdb->get_results( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+								"SELECT role, content, created_at FROM `{$grayfox_msg_table}` WHERE conversation_id = %d ORDER BY created_at ASC", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+								$grayfox_lead_id
+							), ARRAY_A );
+							?>
+							<div class="grayfox-message-history">
+								<?php if ( empty( $grayfox_lead_messages ) ) : ?>
+									<p><?php esc_html_e( 'No messages.', 'kbfox' ); ?></p>
+								<?php else : ?>
+									<?php foreach ( $grayfox_lead_messages as $grayfox_msg ) : ?>
+										<div class="grayfox-conv-message grayfox-conv-message--<?php echo esc_attr( $grayfox_msg['role'] ); ?>">
+											<span class="grayfox-conv-role"><?php echo esc_html( ucfirst( $grayfox_msg['role'] ) ); ?></span>
+											<span class="grayfox-conv-time"><?php echo esc_html( $grayfox_msg['created_at'] ); ?></span>
+											<p><?php echo esc_html( $grayfox_msg['content'] ); ?></p>
+										</div>
+									<?php endforeach; ?>
+								<?php endif; ?>
+							</div>
+						</td>
+					</tr>
+				<?php endforeach; ?>
+			</tbody>
+		</table>
 	<?php endif; ?>
 </div>

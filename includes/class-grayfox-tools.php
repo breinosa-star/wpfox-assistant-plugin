@@ -19,6 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Abstract base class for a GrayFox tool.
  */
+if ( ! class_exists( 'GrayFox_Tool' ) ) {
 abstract class GrayFox_Tool {
 
 	/**
@@ -40,6 +41,7 @@ abstract class GrayFox_Tool {
 	 */
 	abstract public function execute( array $args ): string;
 }
+} // end class_exists GrayFox_Tool
 
 /**
  * Tool: search_knowledge_base
@@ -49,6 +51,7 @@ abstract class GrayFox_Tool {
  * which is more accurate than passing the raw user message directly.
  *
  */
+if ( ! class_exists( 'GrayFox_Tool_Search_KB' ) ) {
 class GrayFox_Tool_Search_KB extends GrayFox_Tool {
 
 	public function get_name(): string {
@@ -96,6 +99,7 @@ class GrayFox_Tool_Search_KB extends GrayFox_Tool {
 		return $knowledge;
 	}
 }
+} // end class_exists GrayFox_Tool_Search_KB
 
 /**
  * Tool: capture_customer_email
@@ -107,6 +111,7 @@ class GrayFox_Tool_Search_KB extends GrayFox_Tool {
  * Call this when a customer expresses genuine interest in a service and
  * voluntarily provides or agrees to share their email.
  */
+if ( ! class_exists( 'GrayFox_Tool_Capture_Email' ) ) {
 class GrayFox_Tool_Capture_Email extends GrayFox_Tool {
 
 	public function get_name(): string {
@@ -184,6 +189,7 @@ class GrayFox_Tool_Capture_Email extends GrayFox_Tool {
 		) );
 	}
 }
+} // end class_exists GrayFox_Tool_Capture_Email
 
 /**
  * Tool registry.
@@ -191,6 +197,7 @@ class GrayFox_Tool_Capture_Email extends GrayFox_Tool {
  * Manages all registered tools and filters them by license tier.
  * Initialized lazily on first access.
  */
+if ( ! class_exists( 'GrayFox_Tools' ) ) {
 class GrayFox_Tools {
 
 	/** @var GrayFox_Tool[] Registered tools keyed by name. */
@@ -297,19 +304,14 @@ class GrayFox_Tools {
 		self::init();
 
 		if ( ! isset( self::$registry[ $name ] ) ) {
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( 'GrayFox Tools: unknown tool called: ' . $name ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			}
 			return wp_json_encode( array( 'error' => 'Unknown tool: ' . sanitize_text_field( $name ) ) );
 		}
 
 		try {
 			return self::$registry[ $name ]->execute( $args );
 		} catch ( \Throwable $e ) {
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( 'GrayFox Tools: error executing "' . $name . '": ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			}
 			return wp_json_encode( array( 'error' => 'Tool execution failed.' ) );
 		}
 	}
 }
+} // end class_exists GrayFox_Tools

@@ -15,24 +15,25 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Sends messages to LLM providers and yields streaming tokens.
  * Supports: openai, anthropic, gemini, groq.
  */
+if ( ! class_exists( 'GrayFox_LLM' ) ) {
 class GrayFox_LLM {
 
 	/**
 	 * Send a message to the specified LLM provider and stream the response.
 	 *
 	 * @param string $provider  One of: openai, anthropic, gemini, groq.
-	 * @param string $api_key   Provider API key (plaintext).
-	 * @param string $model     Model identifier.
-	 * @param array  $messages  Messages array in OpenAI format.
-	 * @return Generator Yields string tokens.
+	 * @param string   $api_key   Provider API key (plaintext).
+	 * @param string   $model     Model identifier.
+	 * @param array    $messages  Messages array in OpenAI format.
+	 * @param callable $on_token  Called with each string token as it streams in.
 	 */
-	public function send_message( string $provider, string $api_key, string $model, array $messages ): Generator {
-		return match ( $provider ) {
-			'openai'    => $this->stream_openai( $api_key, $model, $messages ),
-			'anthropic' => $this->stream_anthropic( $api_key, $model, $messages ),
-			'gemini'    => $this->stream_gemini( $api_key, $model, $messages ),
-			'groq'      => $this->stream_groq( $api_key, $model, $messages ),
-			default     => $this->stream_openai( $api_key, $model, $messages ),
+	public function send_message( string $provider, string $api_key, string $model, array $messages, callable $on_token ): void {
+		match ( $provider ) {
+			'openai'    => $this->stream_openai( $api_key, $model, $messages, $on_token ),
+			'anthropic' => $this->stream_anthropic( $api_key, $model, $messages, $on_token ),
+			'gemini'    => $this->stream_gemini( $api_key, $model, $messages, $on_token ),
+			'groq'      => $this->stream_groq( $api_key, $model, $messages, $on_token ),
+			default     => $this->stream_openai( $api_key, $model, $messages, $on_token ),
 		};
 	}
 
@@ -135,9 +136,6 @@ class GrayFox_LLM {
 				default     => $this->json_openai( $api_key, $model, $messages, $temperature ),
 			};
 		} catch ( \Throwable $e ) {
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( 'GrayFox LLM request_json error (' . $provider . '): ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			}
 			return '';
 		}
 	}
@@ -165,9 +163,6 @@ class GrayFox_LLM {
 				default     => $this->text_openai( $api_key, $model, $messages, $temperature ),
 			};
 		} catch ( \Throwable $e ) {
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( 'GrayFox LLM request_text error (' . $provider . '): ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			}
 			return '';
 		}
 	}
@@ -313,9 +308,6 @@ class GrayFox_LLM {
 		) );
 
 		if ( is_wp_error( $response ) ) {
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( 'GrayFox LLM wp_remote_post error: ' . $response->get_error_message() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			}
 			return '';
 		}
 
@@ -323,9 +315,6 @@ class GrayFox_LLM {
 		$body = json_decode( $raw, true );
 
 		if ( isset( $body['error'] ) ) {
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( 'GrayFox LLM API error (' . $model . '): ' . ( $body['error']['message'] ?? $raw ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			}
 			return '';
 		}
 
@@ -466,9 +455,6 @@ class GrayFox_LLM {
 				default     => '', // Groq / unknown: caller must check provider_supports_vision() first.
 			};
 		} catch ( \Throwable $e ) {
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( 'GrayFox LLM request_vision error (' . $provider . '): ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			}
 			return '';
 		}
 	}
@@ -511,9 +497,6 @@ class GrayFox_LLM {
 		) );
 
 		if ( is_wp_error( $response ) ) {
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( 'GrayFox vision_openai error: ' . $response->get_error_message() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			}
 			return '';
 		}
 
@@ -521,9 +504,6 @@ class GrayFox_LLM {
 		$body = json_decode( $raw, true );
 
 		if ( isset( $body['error'] ) ) {
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( 'GrayFox vision_openai API error: ' . ( $body['error']['message'] ?? $raw ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			}
 			return '';
 		}
 
@@ -588,9 +568,6 @@ class GrayFox_LLM {
 		) );
 
 		if ( is_wp_error( $response ) ) {
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( 'GrayFox vision_anthropic error: ' . $response->get_error_message() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			}
 			return '';
 		}
 
@@ -653,9 +630,6 @@ class GrayFox_LLM {
 		) );
 
 		if ( is_wp_error( $response ) ) {
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( 'GrayFox vision_gemini error: ' . $response->get_error_message() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			}
 			return '';
 		}
 
@@ -670,13 +644,13 @@ class GrayFox_LLM {
 	/**
 	 * Stream from OpenAI (or OpenAI-compatible endpoint).
 	 *
-	 * @param string $api_key  API key.
-	 * @param string $model    Model name.
-	 * @param array  $messages Messages array.
-	 * @param string $endpoint API endpoint URL.
-	 * @return Generator
+	 * @param string   $api_key  API key.
+	 * @param string   $model    Model name.
+	 * @param array    $messages Messages array.
+	 * @param callable $on_token Called with each string token as it arrives.
+	 * @param string   $endpoint API endpoint URL.
 	 */
-	private function stream_openai( string $api_key, string $model, array $messages, string $endpoint = 'https://api.openai.com/v1/chat/completions' ): Generator {
+	private function stream_openai( string $api_key, string $model, array $messages, callable $on_token, string $endpoint = 'https://api.openai.com/v1/chat/completions' ): void {
 		$max_tokens = max( 64, min( 32000, (int) get_option( 'grayfox_llm_max_tokens', 1024 ) ) );
 		$payload    = wp_json_encode( array(
 			'model'                 => $model,
@@ -685,54 +659,48 @@ class GrayFox_LLM {
 			'max_completion_tokens' => $max_tokens,
 		) );
 
-		$stream = $this->open_stream( $endpoint, array(
-			'Authorization' => 'Bearer ' . $api_key,
-			'Content-Type'  => 'application/json',
-		), $payload );
-
-		if ( ! $stream ) {
-			return;
-		}
-
-		while ( ! feof( $stream ) ) {
-			$line = fgets( $stream );
-			if ( false === $line ) {
-				break;
+		$buffer = '';
+		$this->curl_stream_chunks(
+			$endpoint,
+			array(
+				'Authorization' => 'Bearer ' . $api_key,
+				'Content-Type'  => 'application/json',
+			),
+			$payload,
+			function ( string $chunk ) use ( &$buffer, $on_token ) {
+				$buffer .= $chunk;
+				while ( false !== ( $pos = strpos( $buffer, "\n" ) ) ) {
+					$line   = trim( substr( $buffer, 0, $pos ) );
+					$buffer = substr( $buffer, $pos + 1 );
+					if ( '' === $line || ! str_starts_with( $line, 'data: ' ) ) {
+						continue;
+					}
+					$data = substr( $line, 6 );
+					if ( '[DONE]' === $data ) {
+						return;
+					}
+					$json = json_decode( $data, true );
+					if ( json_last_error() !== JSON_ERROR_NONE ) {
+						continue;
+					}
+					$token = $json['choices'][0]['delta']['content'] ?? null;
+					if ( null !== $token && '' !== $token ) {
+						$on_token( $token );
+					}
+				}
 			}
-			$line = trim( $line );
-			if ( '' === $line ) {
-				continue;
-			}
-			if ( ! str_starts_with( $line, 'data: ' ) ) {
-				continue;
-			}
-			$data = substr( $line, 6 );
-			if ( '[DONE]' === $data ) {
-				break;
-			}
-			$json = json_decode( $data, true );
-			if ( json_last_error() !== JSON_ERROR_NONE ) {
-				continue;
-			}
-			$token = $json['choices'][0]['delta']['content'] ?? null;
-			if ( null !== $token && '' !== $token ) {
-				yield $token;
-			}
-		}
-
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- raw HTTP stream via stream_context_create; WP_Filesystem has no streaming HTTP equivalent
-		fclose( $stream );
+		);
 	}
 
 	/**
 	 * Stream from Anthropic.
 	 *
-	 * @param string $api_key  API key.
-	 * @param string $model    Model name.
-	 * @param array  $messages Messages array.
-	 * @return Generator
+	 * @param string   $api_key  API key.
+	 * @param string   $model    Model name.
+	 * @param array    $messages Messages array.
+	 * @param callable $on_token Called with each string token as it arrives.
 	 */
-	private function stream_anthropic( string $api_key, string $model, array $messages ): Generator {
+	private function stream_anthropic( string $api_key, string $model, array $messages, callable $on_token ): void {
 		// Anthropic requires system message to be separate.
 		$system_content = '';
 		$filtered = array();
@@ -757,57 +725,50 @@ class GrayFox_LLM {
 
 		$payload = wp_json_encode( $body );
 
-		$stream = $this->open_stream( 'https://api.anthropic.com/v1/messages', array(
-			'x-api-key'         => $api_key,
-			'anthropic-version' => '2023-06-01',
-			'Content-Type'      => 'application/json',
-		), $payload );
-
-		if ( ! $stream ) {
-			return;
-		}
-
-		while ( ! feof( $stream ) ) {
-			$line = fgets( $stream );
-			if ( false === $line ) {
-				break;
-			}
-			$line = trim( $line );
-			if ( '' === $line ) {
-				continue;
-			}
-			if ( ! str_starts_with( $line, 'data: ' ) ) {
-				continue;
-			}
-			$data = substr( $line, 6 );
-			$json = json_decode( $data, true );
-			if ( json_last_error() !== JSON_ERROR_NONE ) {
-				continue;
-			}
-			if ( ( $json['type'] ?? '' ) === 'content_block_delta' ) {
-				$token = $json['delta']['text'] ?? null;
-				if ( null !== $token && '' !== $token ) {
-					yield $token;
+		$buffer = '';
+		$this->curl_stream_chunks(
+			'https://api.anthropic.com/v1/messages',
+			array(
+				'x-api-key'         => $api_key,
+				'anthropic-version' => '2023-06-01',
+				'Content-Type'      => 'application/json',
+			),
+			$payload,
+			function ( string $chunk ) use ( &$buffer, $on_token ) {
+				$buffer .= $chunk;
+				while ( false !== ( $pos = strpos( $buffer, "\n" ) ) ) {
+					$line   = trim( substr( $buffer, 0, $pos ) );
+					$buffer = substr( $buffer, $pos + 1 );
+					if ( '' === $line || ! str_starts_with( $line, 'data: ' ) ) {
+						continue;
+					}
+					$json = json_decode( substr( $line, 6 ), true );
+					if ( json_last_error() !== JSON_ERROR_NONE ) {
+						continue;
+					}
+					if ( ( $json['type'] ?? '' ) === 'content_block_delta' ) {
+						$token = $json['delta']['text'] ?? null;
+						if ( null !== $token && '' !== $token ) {
+							$on_token( $token );
+						}
+					}
+					if ( ( $json['type'] ?? '' ) === 'message_stop' ) {
+						return;
+					}
 				}
 			}
-			if ( ( $json['type'] ?? '' ) === 'message_stop' ) {
-				break;
-			}
-		}
-
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- raw HTTP stream via stream_context_create; WP_Filesystem has no streaming HTTP equivalent
-		fclose( $stream );
+		);
 	}
 
 	/**
 	 * Stream from Google Gemini.
 	 *
-	 * @param string $api_key  API key.
-	 * @param string $model    Model name.
-	 * @param array  $messages Messages array.
-	 * @return Generator
+	 * @param string   $api_key  API key.
+	 * @param string   $model    Model name.
+	 * @param array    $messages Messages array.
+	 * @param callable $on_token Called with each string token as it arrives.
 	 */
-	private function stream_gemini( string $api_key, string $model, array $messages ): Generator {
+	private function stream_gemini( string $api_key, string $model, array $messages, callable $on_token ): void {
 		$url = 'https://generativelanguage.googleapis.com/v1beta/models/' . rawurlencode( $model ) . ':streamGenerateContent?key=' . rawurlencode( $api_key );
 
 		// Convert OpenAI message format to Gemini format.
@@ -838,50 +799,38 @@ class GrayFox_LLM {
 
 		$payload = wp_json_encode( $body );
 
-		$stream = $this->open_stream( $url, array(
-			'Content-Type' => 'application/json',
-		), $payload );
-
-		if ( ! $stream ) {
-			return;
-		}
-
 		$buffer = '';
-		while ( ! feof( $stream ) ) {
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fread -- raw HTTP stream; WP_Filesystem has no streaming HTTP equivalent
-			$chunk = fread( $stream, 4096 );
-			if ( false === $chunk || '' === $chunk ) {
-				break;
-			}
-			$buffer .= $chunk;
-
-			// Gemini returns a JSON array; parse text parts as they arrive.
-			if ( preg_match_all( '/"text"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/u', $buffer, $matches ) ) {
-				foreach ( $matches[1] as $text ) {
-					$decoded = json_decode( '"' . $text . '"' );
-					if ( null !== $decoded && '' !== $decoded ) {
-						yield $decoded;
+		$this->curl_stream_chunks(
+			$url,
+			array( 'Content-Type' => 'application/json' ),
+			$payload,
+			function ( string $chunk ) use ( &$buffer, $on_token ) {
+				$buffer .= $chunk;
+				// Gemini returns a JSON array; parse text parts as they arrive.
+				if ( preg_match_all( '/"text"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/u', $buffer, $matches ) ) {
+					foreach ( $matches[1] as $text ) {
+						$decoded = json_decode( '"' . $text . '"' );
+						if ( null !== $decoded && '' !== $decoded ) {
+							$on_token( $decoded );
+						}
 					}
+					// Clear matched portion to avoid re-processing.
+					$buffer = preg_replace( '/"text"\s*:\s*"(?:[^"\\\\]|\\\\.)*"/u', '', $buffer );
 				}
-				// Clear matched portion to avoid re-yielding.
-				$buffer = preg_replace( '/"text"\s*:\s*"(?:[^"\\\\]|\\\\.)*"/u', '', $buffer );
 			}
-		}
-
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- raw HTTP stream via stream_context_create; WP_Filesystem has no streaming HTTP equivalent
-		fclose( $stream );
+		);
 	}
 
 	/**
 	 * Stream from Groq (OpenAI-compatible).
 	 *
-	 * @param string $api_key  API key.
-	 * @param string $model    Model name.
-	 * @param array  $messages Messages array.
-	 * @return Generator
+	 * @param string   $api_key  API key.
+	 * @param string   $model    Model name.
+	 * @param array    $messages Messages array.
+	 * @param callable $on_token Called with each string token as it arrives.
 	 */
-	private function stream_groq( string $api_key, string $model, array $messages ): Generator {
-		return $this->stream_openai( $api_key, $model, $messages, 'https://api.groq.com/openai/v1/chat/completions' );
+	private function stream_groq( string $api_key, string $model, array $messages, callable $on_token ): void {
+		$this->stream_openai( $api_key, $model, $messages, $on_token, 'https://api.groq.com/openai/v1/chat/completions' );
 	}
 
 	/* ------------------------------------------------------------------
@@ -915,9 +864,6 @@ class GrayFox_LLM {
 				default     => $this->tools_openai( $api_key, $model, $messages, $tool_definitions ),
 			};
 		} catch ( \Throwable $e ) {
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( 'GrayFox LLM request_with_tools error (' . $provider . '): ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			}
 			return array( 'status' => 'complete', 'content' => '', 'tool_calls' => array(), 'assistant_message' => array() );
 		}
 	}
@@ -953,47 +899,24 @@ class GrayFox_LLM {
 		) );
 
 		if ( is_wp_error( $response ) ) {
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( 'GrayFox LLM tools_openai wp_error: ' . $response->get_error_message() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			}
 			return array( 'status' => 'complete', 'content' => '', 'tool_calls' => array(), 'assistant_message' => array() );
 		}
 
-		$raw_body = wp_remote_retrieve_body( $response );
+		$raw_body  = wp_remote_retrieve_body( $response );
 		$http_code = wp_remote_retrieve_response_code( $response );
 		$body      = json_decode( $raw_body, true );
 
 		if ( ! is_array( $body ) ) {
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( sprintf( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-					'GrayFox LLM tools_openai: null/invalid body (HTTP %d). Raw: %s',
-					$http_code,
-					mb_substr( $raw_body, 0, 300 )
-				) );
-			}
 			return array( 'status' => 'error', 'content' => '', 'tool_calls' => array(), 'assistant_message' => array() );
 		}
 
 		if ( isset( $body['error'] ) ) {
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( 'GrayFox LLM tools_openai API error: ' . ( $body['error']['message'] ?? $raw_body ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			}
 			return array( 'status' => 'error', 'content' => '', 'tool_calls' => array(), 'assistant_message' => array() );
 		}
 
 		$choice        = $body['choices'][0] ?? array();
 		$finish_reason = $choice['finish_reason'] ?? 'stop';
 		$message       = $choice['message'] ?? array();
-
-		if ( 'length' === $finish_reason ) {
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( sprintf( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-					'GrayFox LLM tools_openai: max_tokens (%d) exhausted for model "%s". Increase grayfox_llm_max_tokens.',
-					$max_tokens,
-					$model
-				) );
-			}
-		}
 
 		if ( 'tool_calls' === $finish_reason && ! empty( $message['tool_calls'] ) ) {
 			$normalized = array();
@@ -1102,9 +1025,6 @@ class GrayFox_LLM {
 		) );
 
 		if ( is_wp_error( $response ) ) {
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( 'GrayFox LLM tools_anthropic wp_error: ' . $response->get_error_message() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			}
 			return array( 'status' => 'error', 'content' => '', 'tool_calls' => array(), 'assistant_message' => array() );
 		}
 
@@ -1113,20 +1033,10 @@ class GrayFox_LLM {
 		$result         = json_decode( $raw_anthropic, true );
 
 		if ( ! is_array( $result ) ) {
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( sprintf( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-					'GrayFox LLM tools_anthropic: null/invalid body (HTTP %d). Raw: %s',
-					$http_anthropic,
-					mb_substr( $raw_anthropic, 0, 300 )
-				) );
-			}
 			return array( 'status' => 'error', 'content' => '', 'tool_calls' => array(), 'assistant_message' => array() );
 		}
 
 		if ( isset( $result['error'] ) ) {
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( 'GrayFox LLM tools_anthropic API error: ' . ( $result['error']['message'] ?? $raw_anthropic ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			}
 			return array( 'status' => 'error', 'content' => '', 'tool_calls' => array(), 'assistant_message' => array() );
 		}
 
@@ -1286,9 +1196,6 @@ class GrayFox_LLM {
 		) );
 
 		if ( is_wp_error( $response ) ) {
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( 'GrayFox LLM tools_gemini wp_error: ' . $response->get_error_message() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			}
 			return array( 'status' => 'error', 'content' => '', 'tool_calls' => array(), 'assistant_message' => array() );
 		}
 
@@ -1297,20 +1204,10 @@ class GrayFox_LLM {
 		$result      = json_decode( $raw_gemini, true );
 
 		if ( ! is_array( $result ) ) {
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( sprintf( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-					'GrayFox LLM tools_gemini: null/invalid body (HTTP %d). Raw: %s',
-					$http_gemini,
-					mb_substr( $raw_gemini, 0, 300 )
-				) );
-			}
 			return array( 'status' => 'error', 'content' => '', 'tool_calls' => array(), 'assistant_message' => array() );
 		}
 
 		if ( isset( $result['error'] ) ) {
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( 'GrayFox LLM tools_gemini API error: ' . ( $result['error']['message'] ?? $raw_gemini ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			}
 			return array( 'status' => 'error', 'content' => '', 'tool_calls' => array(), 'assistant_message' => array() );
 		}
 
@@ -1363,34 +1260,44 @@ class GrayFox_LLM {
 	}
 
 	/**
-	 * Open a streaming HTTP connection via fopen/fread.
+	 * Open a streaming HTTP POST connection via cURL and deliver raw chunks to a callback.
 	 *
-	 * @param string $url     Request URL.
-	 * @param array  $headers HTTP headers (key => value).
-	 * @param string $body    Request body (JSON).
-	 * @return resource|false Stream resource or false on failure.
+	 * Uses CURLOPT_WRITEFUNCTION so data is processed incrementally as it arrives
+	 * from the server — true streaming without buffering the full response.
+	 *
+	 * @param string   $url      Request URL.
+	 * @param array    $headers  HTTP headers (key => value).
+	 * @param string   $body     Request body (JSON).
+	 * @param callable $on_chunk Called with each raw data chunk (string) as it arrives.
 	 */
-	private function open_stream( string $url, array $headers, string $body ) {
-		$header_string = '';
+	private function curl_stream_chunks( string $url, array $headers, string $body, callable $on_chunk ): void {
+		$header_list = array();
 		foreach ( $headers as $key => $value ) {
-			$header_string .= $key . ': ' . $value . "\r\n";
+			$header_list[] = $key . ': ' . $value;
 		}
 
-		$context = stream_context_create( array(
-			'http' => array(
-				'method'  => 'POST',
-				'header'  => $header_string,
-				'content' => $body,
-				'timeout' => 60,
-			),
-			'ssl' => array(
-				'verify_peer'      => true,
-				'verify_peer_name' => true,
-			),
+		// phpcs:disable WordPress.WP.AlternativeFunctions.curl_curl_init,WordPress.WP.AlternativeFunctions.curl_curl_setopt_array,WordPress.WP.AlternativeFunctions.curl_curl_exec,WordPress.WP.AlternativeFunctions.curl_curl_close
+		// wp_remote_post() buffers the full response before returning and does not expose a
+		// write callback, making it incompatible with server-sent event streaming. curl with
+		// CURLOPT_WRITEFUNCTION is the only way to process LLM tokens as they arrive.
+		$ch = curl_init();
+		curl_setopt_array( $ch, array(
+			CURLOPT_URL            => $url,
+			CURLOPT_POST           => true,
+			CURLOPT_POSTFIELDS     => $body,
+			CURLOPT_HTTPHEADER     => $header_list,
+			CURLOPT_RETURNTRANSFER => false,
+			CURLOPT_TIMEOUT        => 60,
+			CURLOPT_SSL_VERIFYPEER => true,
+			CURLOPT_SSL_VERIFYHOST => 2,
+			CURLOPT_WRITEFUNCTION  => static function ( $ch, $data ) use ( $on_chunk ) {
+				$on_chunk( $data );
+				return strlen( $data );
+			},
 		) );
-
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
-		$stream = @fopen( $url, 'r', false, $context );
-		return $stream;
+		curl_exec( $ch );
+		curl_close( $ch );
+		// phpcs:enable WordPress.WP.AlternativeFunctions.curl_curl_init,WordPress.WP.AlternativeFunctions.curl_curl_setopt_array,WordPress.WP.AlternativeFunctions.curl_curl_exec,WordPress.WP.AlternativeFunctions.curl_curl_close
 	}
 }
+} // end class_exists GrayFox_LLM

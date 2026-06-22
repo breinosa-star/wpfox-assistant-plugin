@@ -1,14 +1,14 @@
 <?php
 /**
  * Plugin Name: KBFox
- * Plugin URI:  https://grayfoxdc.com
+ * Plugin URI:  https://plugins.grayfoxdc.com
  * Description: KBFox — AI-powered chatbot with RAG knowledge base for WordPress
  * Version:     1.0.0
  * Requires at least: 6.2
  * Requires PHP: 8.1
  * Author:      GrayFox
- * Author URI:  https://grayfoxdc.com
- * License:     GPL-2.0+
+ * Author URI:  https://www.linkedin.com/in/boris-reinosa-925a48132
+ * License:     GPLv2 or later
  * Text Domain: kbfox
  */
 
@@ -109,20 +109,9 @@ if ( file_exists( $grayfox_as_path ) ) {
 }
 
 /* ------------------------------------------------------------------
- * Runtime DB upgrade check — runs once per version bump on plugins_loaded
+ * One-time data migrations — plugins_loaded
  * ------------------------------------------------------------------ */
 
-add_action( 'plugins_loaded', function () {
-	if ( get_option( 'grayfox_db_version' ) !== '1.2.0' ) {
-		GrayFox_DB::create_tables(); // dbDelta adds missing columns non-destructively
-		update_option( 'grayfox_db_version', '1.2.0' );
-	}
-
-	// Migrate old default welcome message to the new one that asks for the customer's name.
-	if ( get_option( 'grayfox_widget_welcome_message' ) === 'Hello! How can I help you today?' ) {
-		update_option( 'grayfox_widget_welcome_message', 'Hello! Who am I speaking with today?' );
-	}
-} );
 
 /* ------------------------------------------------------------------
  * Activation / Deactivation / Uninstall hooks

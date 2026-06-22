@@ -14,6 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Creates, manages, and drops GrayFox custom database tables.
  */
+if ( ! class_exists( 'GrayFox_DB' ) ) {
 class GrayFox_DB {
 
 	/**
@@ -150,3 +151,4 @@ class GrayFox_DB {
 		}
 	}
 }
+} // end class_exists GrayFox_DB

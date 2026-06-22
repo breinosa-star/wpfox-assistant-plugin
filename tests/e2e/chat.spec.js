@@ -15,15 +15,19 @@ const edgeCases         = require('./scenarios/edge-cases');
  * subsequent tests running from the same IP address.
  */
 function clearSecurityTransients() {
-	execFileSync('docker', [
-		'exec', 'grayfox_db',
-		'mysql', '-uwordpress', '-pwordpress', 'wordpress', '-e',
-		"DELETE FROM wp_options" +
-		" WHERE option_name LIKE '_transient_grayfox_ip_block_%'" +
-		"    OR option_name LIKE '_transient_timeout_grayfox_ip_block_%'" +
-		"    OR option_name LIKE '_transient_grayfox_strikes_%'" +
-		"    OR option_name LIKE '_transient_timeout_grayfox_strikes_%'",
-	], { stdio: 'pipe' });
+	try {
+		execFileSync('docker', [
+			'exec', 'grayfox_db',
+			'mysql', '-uwordpress', '-pwordpress', 'wordpress', '-e',
+			"DELETE FROM wp_options" +
+			" WHERE option_name LIKE '_transient_grayfox_ip_block_%'" +
+			"    OR option_name LIKE '_transient_timeout_grayfox_ip_block_%'" +
+			"    OR option_name LIKE '_transient_grayfox_strikes_%'" +
+			"    OR option_name LIKE '_transient_timeout_grayfox_strikes_%'",
+		], { stdio: 'pipe' });
+	} catch {
+		// Docker not available (e.g. remote run) — skip transient clearing.
+	}
 }
 
 const TRANSCRIPTS_DIR = path.join(__dirname, 'transcripts');

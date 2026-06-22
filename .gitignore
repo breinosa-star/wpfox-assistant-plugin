@@ -17,6 +17,10 @@ tests/e2e/report/
 # IDE
 .idea/
 
+# Environment files with secrets
+.env
+tests/.env
+
 # macOS
 .DS_Store
 

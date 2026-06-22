@@ -147,7 +147,14 @@ ChatWindow.prototype.sendMessage = function ( text ) {
 					( remaining > 0 ? ' (' + remaining + ' warning' + ( remaining !== 1 ? 's' : '' ) + ' remaining)' : '' );
 				MessageList.appendMessage( self.messagesEl, 'assistant', warningMsg, 'error' );
 				self.isSending = false;
-				MessageInput.setDisabled( self.inputEl, self.sendBtn, false );
+
+				const retryAfter = err.retryAfter || 0;
+				if ( retryAfter > 0 ) {
+					MessageInput.setDisabled( self.inputEl, self.sendBtn, true );
+					self.startThrottleCountdown( retryAfter );
+				} else {
+					MessageInput.setDisabled( self.inputEl, self.sendBtn, false );
+				}
 				return;
 			}
 
@@ -156,6 +163,8 @@ ChatWindow.prototype.sendMessage = function ( text ) {
 				errMsg = 'Session expired. Please refresh and try again.';
 			} else if ( err && err.status === 503 ) {
 				errMsg = 'The AI assistant is not configured. Please contact the site administrator.';
+			} else if ( err && err.status === 429 && err.message && ! err.security ) {
+				errMsg = err.message;
 			}
 
 			MessageList.appendMessage( self.messagesEl, 'assistant', errMsg, 'error' );
@@ -288,6 +297,27 @@ ChatWindow.prototype.endSession = function () {
 	this.isSending = false;
 	MessageInput.setDisabled( this.inputEl, this.sendBtn, false );
 	if ( this.inputEl ) this.inputEl.focus();
+};
+
+ChatWindow.prototype.startThrottleCountdown = function ( seconds ) {
+	const self        = this;
+	let   remaining   = seconds;
+	const placeholder = this.inputEl ? this.inputEl.placeholder : '';
+
+	function tick() {
+		if ( ! self.inputEl ) return;
+		self.inputEl.placeholder = 'Please wait ' + remaining + 's…';
+		if ( remaining <= 0 ) {
+			self.inputEl.placeholder = placeholder;
+			MessageInput.setDisabled( self.inputEl, self.sendBtn, false );
+			if ( self.inputEl ) self.inputEl.focus();
+			return;
+		}
+		remaining--;
+		setTimeout( tick, 1000 );
+	}
+
+	tick();
 };
 
 ChatWindow.prototype.showError = function ( message ) {

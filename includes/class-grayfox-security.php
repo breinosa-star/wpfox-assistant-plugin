@@ -26,6 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Class GrayFox_Security
  */
+if ( ! class_exists( 'GrayFox_Security' ) ) {
 class GrayFox_Security {
 
 	// -------------------------------------------------------------------------
@@ -136,18 +137,15 @@ class GrayFox_Security {
 			return self::blocked_result( $total );
 		}
 
-		// 5. Progressive warning + throttle.
+		// 5. Progressive warning + throttle (delay enforced client-side via retry_after).
 		$delay = self::THROTTLE_DELAYS[ $total ] ?? 0;
-		if ( $delay > 0 ) {
-			sleep( $delay );
-		}
 
 		return array(
-			'blocked'  => false,
-			'warning'  => true,
-			'throttle' => $delay,
-			'strikes'  => $total,
-			'message'  => self::warning_message( $total ),
+			'blocked'     => false,
+			'warning'     => true,
+			'retry_after' => $delay,
+			'strikes'     => $total,
+			'message'     => self::warning_message( $total ),
 		);
 	}
 
@@ -528,3 +526,4 @@ class GrayFox_Security {
 		return 'Your message was not allowed. This assistant only answers questions related to our business. Further misuse may result in disconnection.';
 	}
 }
+} // end class_exists GrayFox_Security

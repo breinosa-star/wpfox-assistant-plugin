@@ -17,6 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Registers and handles the AJAX chat endpoints.
  */
+if ( ! class_exists( 'GrayFox_Chat' ) ) {
 class GrayFox_Chat {
 
 	/**
@@ -68,9 +69,10 @@ class GrayFox_Chat {
 
 		if ( $security['warning'] ) {
 			wp_send_json_error( array(
-				'message'  => $security['message'],
-				'security' => 'warning',
-				'strikes'  => $security['strikes'],
+				'message'     => $security['message'],
+				'security'    => 'warning',
+				'strikes'     => $security['strikes'],
+				'retry_after' => $security['retry_after'] ?? 0,
 			), 200 );
 		}
 
@@ -231,7 +233,7 @@ class GrayFox_Chat {
 		}
 
 		// 4a. Message limit check.
-		$msg_limit           = (int) get_option( 'grayfox_session_message_limit', 21 );
+		$msg_limit           = (int) get_option( 'grayfox_session_message_limit', 31 );
 		$warm_down_instruction = '';
 
 		if ( $msg_count >= $msg_limit ) {
@@ -516,12 +518,15 @@ class GrayFox_Chat {
 					}
 				}
 
-				// Cap at 2.5 s so long responses don't feel sluggish.
-				if ( $total_delay_us > 0 ) {
-					usleep( min( $total_delay_us, 2500000 ) );
+				// Signal the client to hold the typing indicator for the computed
+				// delay before rendering tokens (delay enforced client-side).
+				$thinking_ms = (int) min( $total_delay_us / 1000, 2500 );
+				if ( $thinking_ms > 0 ) {
+					echo 'data: ' . wp_json_encode( array( 'thinking_ms' => $thinking_ms ) ) . "\n\n";
+					flush();
 				}
 
-				// Send all tokens immediately after the delay.
+				// Send all tokens immediately.
 				foreach ( $words as $chunk ) {
 					if ( '' === $chunk ) {
 						continue;
@@ -531,13 +536,11 @@ class GrayFox_Chat {
 				}
 			} else {
 				// Tool calls were made — stream the final LLM response with enriched messages.
-				$generator = $llm->send_message( $provider, $api_key, $model, $messages );
-
-				foreach ( $generator as $token ) {
+				$llm->send_message( $provider, $api_key, $model, $messages, function ( $token ) use ( &$full_response ) {
 					$full_response .= $token;
 					echo 'data: ' . wp_json_encode( array( 'token' => $token ) ) . "\n\n";
 					flush();
-				}
+				} );
 			}
 		} catch ( Throwable $e ) {
 			echo 'data: ' . wp_json_encode( array( 'error' => 'LLM error occurred.' ) ) . "\n\n";
@@ -594,3 +597,4 @@ class GrayFox_Chat {
 		flush();
 	}
 }
+} // end class_exists GrayFox_Chat

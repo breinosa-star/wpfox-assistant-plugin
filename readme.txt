@@ -3,7 +3,7 @@ Plugin Name: KBFox
 Contributors: breinosa
 Tags: chatbot, ai, knowledge base, chat widget
 Requires at least: 6.2
-Tested up to: 6.9
+Tested up to: 7.0
 Requires PHP: 8.1
 Stable tag: 1.0.0
 License: GPLv2 or later
@@ -87,6 +87,7 @@ Chat responses and document summarization are sent to the LLM API provider you c
 
 The following libraries are distributed with this plugin:
 
+* **Action Scheduler** 3.9.3 by WooCommerce — GNU General Public License v3.0 — https://github.com/woocommerce/action-scheduler
 * **smalot/pdfparser** 2.x — GNU Lesser General Public License 3.0 — https://github.com/smalot/pdfparser
 * **Symfony Polyfill mbstring** — MIT License — https://github.com/symfony/polyfill
 
