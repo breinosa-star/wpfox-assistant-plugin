@@ -56,6 +56,12 @@ class ChatHelper {
 		await this.page.waitForSelector('#grayfox-input:not([disabled])', {
 			timeout: this.responseTimeout,
 		});
+
+		// Record bubble count so waitForResponse() can collect only the new ones.
+		this._bubbleCountBeforeSend = await this.page
+			.locator('.grayfox-message--assistant .grayfox-bubble')
+			.count();
+
 		const input = this.page.locator('#grayfox-input');
 		await input.fill(text);
 		await this.page.click('#grayfox-send');
@@ -73,24 +79,27 @@ class ChatHelper {
 	 *   the count while thinking.
 	 */
 	async waitForResponse() {
-		// Wait for the typing indicator to appear (confirms the request is in flight).
-		// Use a short timeout — if it's already gone (very fast response), that's fine.
+		// Wait for the input to be disabled — confirms the request is in flight.
 		try {
-			await this.page.waitForSelector('.grayfox-typing-indicator', {
-				state: 'attached',
-				timeout: 8_000,
-			});
+			await this.page.waitForSelector('#grayfox-input[disabled]', { timeout: 5_000 });
 		} catch {
-			// Indicator already removed — response arrived before we started watching.
+			// Already disabled or extremely fast response.
 		}
 
-		// Wait for the typing indicator to disappear (response is fully rendered).
-		await this.page.waitForSelector('.grayfox-typing-indicator', {
-			state: 'detached',
-			timeout: this.responseTimeout,
-		});
+		// Wait for either:
+		// (a) input re-enabled  — all bubbles rendered, normal or throttle-warning path.
+		// (b) session blocked   — injection triggers MAX_STRIKES immediately; input stays
+		//                         disabled and the placeholder is set to "Chat disabled."
+		await Promise.race([
+			this.page.waitForSelector('#grayfox-input:not([disabled])', {
+				timeout: this.responseTimeout,
+			}),
+			this.page.waitForSelector('#grayfox-input[placeholder="Chat disabled."]', {
+				timeout: this.responseTimeout,
+			}),
+		]);
 
-		const text = await this._getLastAssistantText();
+		const text = await this._getNewBubblesText();
 		this.transcript.push({ role: 'assistant', content: text, timestamp: Date.now() });
 		return text;
 	}
@@ -158,6 +167,18 @@ class ChatHelper {
 		const count   = await bubbles.count();
 		if (count === 0) return '';
 		return (await bubbles.nth(count - 1).innerText()).trim();
+	}
+
+	async _getNewBubblesText() {
+		const bubbles = this.page.locator('.grayfox-message--assistant .grayfox-bubble');
+		const count   = await bubbles.count();
+		const from    = this._bubbleCountBeforeSend ?? 0;
+		const parts   = [];
+		for (let i = from; i < count; i++) {
+			const t = (await bubbles.nth(i).innerText()).trim();
+			if (t) parts.push(t);
+		}
+		return parts.join(' ');
 	}
 }
 

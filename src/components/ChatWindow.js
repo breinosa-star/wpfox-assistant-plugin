@@ -1,7 +1,6 @@
 'use strict';
 
 const api            = require( '../services/api' );
-const SSEClient      = require( '../services/sse-client' );
 const session        = require( '../store/session' );
 const MessageList    = require( './MessageList' );
 const MessageInput   = require( './MessageInput' );
@@ -19,7 +18,6 @@ function ChatWindow( widgetEl, config ) {
 	this.widgetEl   = widgetEl;
 	this.config     = config;
 	this.sessionId  = config.sessionId || '';
-	this.sseClient  = null;
 	this.isOpen     = false;
 	this.isSending  = false;
 
@@ -127,7 +125,7 @@ ChatWindow.prototype.sendMessage = function ( text ) {
 				current.sessionId = result.sessionId;
 				session.saveSession( current );
 			}
-			self.streamResponse( result.streamToken );
+			self.animateResponse( result.response );
 		} )
 		.catch( function ( err ) {
 			TypingIndicator.hideTypingIndicator( self.messagesEl );
@@ -173,67 +171,55 @@ ChatWindow.prototype.sendMessage = function ( text ) {
 		} );
 };
 
-ChatWindow.prototype.streamResponse = function ( streamToken ) {
+ChatWindow.prototype.animateResponse = function ( text ) {
 	const self = this;
-	let   accumulated = '';
-	let   msgEl       = null;
+	TypingIndicator.hideTypingIndicator( this.messagesEl );
 
-	if ( this.sseClient ) this.sseClient.close();
-
-	const streamUrl = this.config.ajaxUrl +
-		'?action=grayfox_chat_stream' +
-		'&stream_token='  + encodeURIComponent( streamToken ) +
-		'&session_id='    + encodeURIComponent( this.sessionId ) +
-		'&nonce='         + encodeURIComponent( this.config.streamNonce );
-
-	this.sseClient = new SSEClient( this.sessionId, streamToken, streamUrl );
-
-	this.sseClient.onMessage( function ( data ) {
-		if ( data.done ) {
-			self.sseClient.close();
-			return;
-		}
-
-		if ( data.error ) {
-			self.sseClient && self.sseClient.errorCallback &&
-				self.sseClient.errorCallback( { type: 'error', message: data.error } );
-			return;
-		}
-
-		if ( data.token ) {
-			accumulated += data.token;
-			if ( msgEl ) {
-				MessageList.updateMessage( msgEl, accumulated );
-				MessageList.scrollToBottom( self.messagesEl );
-			} else {
-				TypingIndicator.hideTypingIndicator( self.messagesEl );
-				msgEl = MessageList.appendMessage( self.messagesEl, 'assistant', accumulated );
-			}
-		}
-	} );
-
-	this.sseClient.onError( function ( err ) {
-		TypingIndicator.hideTypingIndicator( self.messagesEl );
-		const errMsg = err && err.message ? err.message : 'Connection error. Please try again.';
-		if ( ! msgEl ) MessageList.appendMessage( self.messagesEl, 'assistant', errMsg, 'error' );
+	if ( ! text ) {
 		self.isSending = false;
 		MessageInput.setDisabled( self.inputEl, self.sendBtn, false );
-	} );
+		return;
+	}
 
-	this.sseClient.connect();
+	// Word limits per bubble position: 1st=20, 2nd=15, 3rd+=23.
+	const LIMITS        = [ 20, 15, 23 ];
+	const BUBBLE_DELAY  = 700;
+	const words         = text.split( /\s+/ ).filter( Boolean );
+	const chunks        = [];
 
-	const poll = setInterval( function () {
-		if ( self.sseClient && self.sseClient.closed ) {
-			clearInterval( poll );
-			if ( accumulated ) {
-				session.addMessage( { role: 'assistant', content: accumulated, timestamp: Date.now() } );
-			}
+	let wi = 0;
+	while ( wi < words.length ) {
+		const limit = LIMITS[ Math.min( chunks.length, LIMITS.length - 1 ) ];
+		chunks.push( words.slice( wi, wi + limit ).join( ' ' ) );
+		wi += limit;
+	}
+
+	function showChunk( index ) {
+		if ( index >= chunks.length ) {
+			session.addMessage( { role: 'assistant', content: text, timestamp: Date.now() } );
 			self.isSending = false;
 			MessageInput.setDisabled( self.inputEl, self.sendBtn, false );
 			self.resetInactivityTimer();
 			if ( self.inputEl ) self.inputEl.focus();
+			return;
 		}
-	}, 200 );
+
+		MessageList.appendMessage( self.messagesEl, 'assistant', chunks[ index ] );
+		MessageList.scrollToBottom( self.messagesEl );
+
+		if ( index + 1 < chunks.length ) {
+			TypingIndicator.showTypingIndicator( self.messagesEl );
+			MessageList.scrollToBottom( self.messagesEl );
+			setTimeout( function () {
+				TypingIndicator.hideTypingIndicator( self.messagesEl );
+				showChunk( index + 1 );
+			}, BUBBLE_DELAY );
+		} else {
+			showChunk( index + 1 );
+		}
+	}
+
+	showChunk( 0 );
 };
 
 ChatWindow.prototype.restoreSession = function () {

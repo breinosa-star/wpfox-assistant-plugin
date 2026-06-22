@@ -731,16 +731,6 @@ class GrayFox_Settings {
 	 * --------------------------------------------------------- */
 
 	/**
-	 * Sanitize a checkbox value to boolean.
-	 *
-	 * @param mixed $input Raw input.
-	 * @return bool
-	 */
-	public function sanitize_checkbox( $input ): bool {
-		return (bool) $input;
-	}
-
-	/**
 	 * Sanitize public KB API rate limit: integer clamped 10–600, default 60.
 	 *
 	 * @param mixed $input Raw input.

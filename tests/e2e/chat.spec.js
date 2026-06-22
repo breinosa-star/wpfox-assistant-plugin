@@ -62,6 +62,7 @@ function saveTranscript(scenario, chat) {
 
 function runScenario(scenario) {
 	test(scenario.name, async ({ page }) => {
+		if (scenario.timeout) test.setTimeout(scenario.timeout);
 		const chat = new ChatHelper(page);
 
 		// 1. Open the widget and capture the welcome message.

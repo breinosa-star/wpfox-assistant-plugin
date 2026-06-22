@@ -1,9 +1,9 @@
 <?php
 /**
- * Chat AJAX handler — two-step SSE streaming endpoint.
+ * Chat AJAX handler — blocking endpoint with client-side typewriter animation.
  *
- * Step 1: grayfox_chat (POST) — validates, saves user message, issues stream_token.
- * Step 2: grayfox_chat_stream (GET) — consumes token, streams SSE response.
+ * grayfox_chat (POST) — validates, runs agentic loop, calls LLM via wp_remote_post,
+ * returns the full response in a single JSON payload.
  *
  * @package GrayFox
  */
@@ -28,16 +28,13 @@ class GrayFox_Chat {
 	public function register( GrayFox_Loader $loader ): void {
 		$loader->add_action( 'wp_ajax_grayfox_chat',        $this, 'handle_chat' );
 		$loader->add_action( 'wp_ajax_nopriv_grayfox_chat', $this, 'handle_chat' );
-
-		$loader->add_action( 'wp_ajax_grayfox_chat_stream',        $this, 'handle_stream' );
-		$loader->add_action( 'wp_ajax_nopriv_grayfox_chat_stream', $this, 'handle_stream' );
 	}
 
 	/**
 	 * Step 1: Handle the POST chat request.
 	 *
-	 * Validates nonce, saves user message, builds LLM messages array,
-	 * stores it in a short-lived transient, and returns a stream_token.
+	 * Validates nonce, saves user message, runs the agentic loop,
+	 * calls the LLM via wp_remote_post, and returns the full response.
 	 */
 	public function handle_chat(): void {
 		// 1. Verify nonce.
@@ -409,149 +406,20 @@ class GrayFox_Chat {
 			}
 		}
 
-		// 8. Generate single-use stream token and store context in transient.
-		$stream_token = wp_generate_password( 32, false );
-		$stream_data  = array(
-			'session_id'      => $session_id,
-			'conversation_id' => $conversation_id,
-			'messages'        => $messages,
-			'pre_resolved'    => $pre_resolved, // non-null = LLM responded without tools
-		);
-		set_transient( 'grayfox_stream_' . $stream_token, $stream_data, 60 );
-
-		// 8. Return JSON with token.
-		wp_send_json_success( array(
-			'session_id'   => $session_id,
-			'stream_token' => $stream_token,
-		) );
-	}
-
-	/**
-	 * Step 2: Handle the GET stream request.
-	 *
-	 * Validates the single-use stream token, then streams the LLM response
-	 * as Server-Sent Events.
-	 */
-	public function handle_stream(): void {
-		// 1. Verify nonce — EventSource passes nonce as query param.
-		if ( ! isset( $_GET['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['nonce'] ) ), 'grayfox_chat_stream' ) ) {
-			header( 'Content-Type: text/event-stream' );
-			header( 'Cache-Control: no-cache' );
-			echo "data: " . wp_json_encode( [ 'error' => 'Unauthorized' ] ) . "\n\n";
-			flush();
-			exit;
-		}
-
-		// 2. Get and sanitize parameters.
-		$stream_token = isset( $_GET['stream_token'] ) ? sanitize_text_field( wp_unslash( $_GET['stream_token'] ) ) : '';
-		$session_id   = isset( $_GET['session_id'] )   ? sanitize_text_field( wp_unslash( $_GET['session_id'] ) )   : '';
-
-		if ( empty( $stream_token ) || empty( $session_id ) ) {
-			$this->send_sse_error( 'Missing stream token or session ID.' );
-			exit;
-		}
-
-		// 3. Look up transient.
-		$stream_data = get_transient( 'grayfox_stream_' . $stream_token );
-
-		if ( ! $stream_data ) {
-			$this->send_sse_error( 'Invalid or expired stream token.' );
-			exit;
-		}
-
-		// 4. Validate session ID match.
-		if ( $stream_data['session_id'] !== $session_id ) {
-			$this->send_sse_error( 'Session mismatch.' );
-			exit;
-		}
-
-		// 5. Delete transient immediately (single-use).
-		delete_transient( 'grayfox_stream_' . $stream_token );
-
-		$conversation_id = (int) $stream_data['conversation_id'];
-		$messages        = $stream_data['messages'];
-
-		// 6. Get LLM configuration.
-		$encrypted_key = get_option( 'grayfox_llm_api_key', '' );
-		$api_key       = grayfox_decrypt( $encrypted_key );
-		$provider      = get_option( 'grayfox_llm_provider', 'openai' );
-		$model         = get_option( 'grayfox_llm_model', '' );
-
-		if ( empty( $api_key ) ) {
-			$this->send_sse_error( 'LLM not configured.' );
-			exit;
-		}
-
-		// 7. Set SSE headers.
-		if ( ob_get_level() > 0 ) {
-			ob_end_clean();
-		}
-		header( 'Content-Type: text/event-stream; charset=UTF-8' );
-		header( 'Cache-Control: no-cache' );
-		header( 'X-Accel-Buffering: no' );
-		header( 'Connection: keep-alive' );
-
-		// 8. Stream LLM response — or replay a pre-resolved response from the agentic loop.
-		$llm           = new GrayFox_LLM();
+		// 8. Get the final response — either from the agentic loop or a blocking LLM call.
 		$full_response = '';
-		$pre_resolved  = $stream_data['pre_resolved'] ?? null;
-
 		try {
 			if ( null !== $pre_resolved && '' !== $pre_resolved ) {
-				// Agentic loop captured a direct response (no tools used).
-				// Calculate a natural delay based on response length and punctuation,
-				// then sleep upfront so the delay is felt as "thinking time" (dots)
-				// rather than word-by-word drip. The message then appears all at once.
-				$full_response  = $pre_resolved;
-				$words          = preg_split( '/(\s+)/u', $pre_resolved, -1, PREG_SPLIT_DELIM_CAPTURE );
-				$total_delay_us = 0;
-
-				foreach ( $words as $chunk ) {
-					if ( '' === $chunk || preg_match( '/^\s+$/u', $chunk ) ) {
-						continue;
-					}
-					$total_delay_us += 35000 + wp_rand( -12000, 12000 ); // ~35ms per word
-					if ( preg_match( '/[.!?]$/u', $chunk ) ) {
-						$total_delay_us += 100000; // +100ms after sentence end
-					} elseif ( preg_match( '/[,;:]$/u', $chunk ) ) {
-						$total_delay_us += 40000;  // +40ms after clause
-					}
-				}
-
-				// Signal the client to hold the typing indicator for the computed
-				// delay before rendering tokens (delay enforced client-side).
-				$thinking_ms = (int) min( $total_delay_us / 1000, 2500 );
-				if ( $thinking_ms > 0 ) {
-					echo 'data: ' . wp_json_encode( array( 'thinking_ms' => $thinking_ms ) ) . "\n\n";
-					flush();
-				}
-
-				// Send all tokens immediately.
-				foreach ( $words as $chunk ) {
-					if ( '' === $chunk ) {
-						continue;
-					}
-					echo 'data: ' . wp_json_encode( array( 'token' => $chunk ) ) . "\n\n";
-					flush();
-				}
+				$full_response = $pre_resolved;
 			} else {
-				// Tool calls were made — stream the final LLM response with enriched messages.
-				$llm->send_message( $provider, $api_key, $model, $messages, function ( $token ) use ( &$full_response ) {
-					$full_response .= $token;
-					echo 'data: ' . wp_json_encode( array( 'token' => $token ) ) . "\n\n";
-					flush();
-				} );
+				$full_response = $llm->send_message( $provider, $api_key, $model, $messages );
 			}
-		} catch ( Throwable $e ) {
-			echo 'data: ' . wp_json_encode( array( 'error' => 'LLM error occurred.' ) ) . "\n\n";
-			flush();
-			exit;
+		} catch ( \Throwable $e ) {
+			wp_send_json_error( array( 'message' => __( 'LLM error occurred.', 'kbfox' ) ), 500 );
 		}
 
-		// 9. Save complete assistant response to DB.
+		// 9. Save assistant response to DB.
 		if ( ! empty( $full_response ) ) {
-			global $wpdb;
-			$msg_table = esc_sql( GrayFox_DB::get_table( 'messages' ) );
 			$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
 				$msg_table,
 				array(
@@ -562,12 +430,10 @@ class GrayFox_Chat {
 				),
 				array( '%d', '%s', '%s', '%s' )
 			);
-
 		}
 
 		/**
-		 * Fires after the LLM response has been saved to the database and
-		 * streamed to the visitor, before the SSE done event is sent.
+		 * Fires after the LLM response has been saved to the database.
 		 *
 		 * @since 1.0.0
 		 * @param int    $conversation_id DB row ID of the current conversation.
@@ -575,26 +441,11 @@ class GrayFox_Chat {
 		 */
 		do_action( 'grayfox_chat_response', $conversation_id, $full_response );
 
-		// 10. Send done event.
-		echo 'data: ' . wp_json_encode( array( 'done' => true ) ) . "\n\n";
-		flush();
-
-		wp_die();
+		wp_send_json_success( array(
+			'session_id' => $session_id,
+			'response'   => $full_response,
+		) );
 	}
 
-	/**
-	 * Emit a single SSE error event (before stream headers are set).
-	 *
-	 * @param string $message Error message.
-	 */
-	private function send_sse_error( string $message ): void {
-		if ( ob_get_level() > 0 ) {
-			ob_end_clean();
-		}
-		header( 'Content-Type: text/event-stream; charset=UTF-8' );
-		header( 'Cache-Control: no-cache' );
-		echo 'data: ' . wp_json_encode( array( 'error' => $message ) ) . "\n\n";
-		flush();
-	}
 }
 } // end class_exists GrayFox_Chat

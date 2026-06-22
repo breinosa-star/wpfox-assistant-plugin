@@ -215,13 +215,13 @@ module.exports = [
 		persona: 'Customer who accidentally messaged the wrong chat and asks something completely unrelated.',
 		type:    'edge-case',
 		category: 'classifier',
-		risk:    'Classifier should flag as offtopic, and the warning should be polite, not harsh.',
+		risk:    'Off-topic is logged internally (silent counter) — no user-visible warning. Bot should respond gracefully and steer back to its purpose.',
 		messages: [
 			'can you help me file my taxes?',
 		],
 		expect: {
-			securityWarning: true,
-			noErrors:        true,
+			noSecurityWarning: true,
+			noErrors:          true,
 		},
 	},
 
@@ -368,6 +368,7 @@ module.exports = [
 		type:    'edge-case',
 		category: 'session',
 		risk:    'Near the limit, the system injects a warm-down instruction. The assistant should naturally wrap up and point to direct contact.',
+		timeout:  300_000,  // 20 messages + multi-bubble delays; needs ~3-4 min headroom.
 		// Send enough messages to get close to the default 21-message limit.
 		messages: [
 			'hi', 'tell me about your product', 'I run a spa', 'we have 5 staff',

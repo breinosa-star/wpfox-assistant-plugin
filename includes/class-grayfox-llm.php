@@ -25,15 +25,15 @@ class GrayFox_LLM {
 	 * @param string   $api_key   Provider API key (plaintext).
 	 * @param string   $model     Model identifier.
 	 * @param array    $messages  Messages array in OpenAI format.
-	 * @param callable $on_token  Called with each string token as it streams in.
+	 * @return string Complete response text.
 	 */
-	public function send_message( string $provider, string $api_key, string $model, array $messages, callable $on_token ): void {
-		match ( $provider ) {
-			'openai'    => $this->stream_openai( $api_key, $model, $messages, $on_token ),
-			'anthropic' => $this->stream_anthropic( $api_key, $model, $messages, $on_token ),
-			'gemini'    => $this->stream_gemini( $api_key, $model, $messages, $on_token ),
-			'groq'      => $this->stream_groq( $api_key, $model, $messages, $on_token ),
-			default     => $this->stream_openai( $api_key, $model, $messages, $on_token ),
+	public function send_message( string $provider, string $api_key, string $model, array $messages ): string {
+		return match ( $provider ) {
+			'openai'    => $this->fetch_openai( $api_key, $model, $messages ),
+			'anthropic' => $this->fetch_anthropic( $api_key, $model, $messages ),
+			'gemini'    => $this->fetch_gemini( $api_key, $model, $messages ),
+			'groq'      => $this->fetch_openai( $api_key, $model, $messages, 'https://api.groq.com/openai/v1/chat/completions' ),
+			default     => $this->fetch_openai( $api_key, $model, $messages ),
 		};
 	}
 
@@ -638,72 +638,52 @@ class GrayFox_LLM {
 	}
 
 	/* ------------------------------------------------------------------
-	 * Private: provider-specific streaming methods
+	 * Private: provider-specific blocking fetch methods
 	 * ------------------------------------------------------------------ */
 
 	/**
-	 * Stream from OpenAI (or OpenAI-compatible endpoint).
+	 * Blocking fetch from OpenAI (or OpenAI-compatible endpoint).
 	 *
-	 * @param string   $api_key  API key.
-	 * @param string   $model    Model name.
-	 * @param array    $messages Messages array.
-	 * @param callable $on_token Called with each string token as it arrives.
-	 * @param string   $endpoint API endpoint URL.
+	 * @param string $api_key  API key.
+	 * @param string $model    Model name.
+	 * @param array  $messages Messages array.
+	 * @param string $endpoint API endpoint URL.
+	 * @return string Complete response text.
 	 */
-	private function stream_openai( string $api_key, string $model, array $messages, callable $on_token, string $endpoint = 'https://api.openai.com/v1/chat/completions' ): void {
+	private function fetch_openai( string $api_key, string $model, array $messages, string $endpoint = 'https://api.openai.com/v1/chat/completions' ): string {
 		$max_tokens = max( 64, min( 32000, (int) get_option( 'grayfox_llm_max_tokens', 1024 ) ) );
-		$payload    = wp_json_encode( array(
-			'model'                 => $model,
-			'messages'              => $messages,
-			'stream'                => true,
-			'max_completion_tokens' => $max_tokens,
-		) );
-
-		$buffer = '';
-		$this->curl_stream_chunks(
-			$endpoint,
-			array(
+		$response   = wp_remote_post( $endpoint, array(
+			'headers' => array(
 				'Authorization' => 'Bearer ' . $api_key,
 				'Content-Type'  => 'application/json',
 			),
-			$payload,
-			function ( string $chunk ) use ( &$buffer, $on_token ) {
-				$buffer .= $chunk;
-				while ( false !== ( $pos = strpos( $buffer, "\n" ) ) ) {
-					$line   = trim( substr( $buffer, 0, $pos ) );
-					$buffer = substr( $buffer, $pos + 1 );
-					if ( '' === $line || ! str_starts_with( $line, 'data: ' ) ) {
-						continue;
-					}
-					$data = substr( $line, 6 );
-					if ( '[DONE]' === $data ) {
-						return;
-					}
-					$json = json_decode( $data, true );
-					if ( json_last_error() !== JSON_ERROR_NONE ) {
-						continue;
-					}
-					$token = $json['choices'][0]['delta']['content'] ?? null;
-					if ( null !== $token && '' !== $token ) {
-						$on_token( $token );
-					}
-				}
-			}
-		);
+			'body'    => wp_json_encode( array(
+				'model'                 => $model,
+				'messages'              => $messages,
+				'max_completion_tokens' => $max_tokens,
+			) ),
+			'timeout' => 60,
+		) );
+
+		if ( is_wp_error( $response ) ) {
+			return '';
+		}
+
+		$body = json_decode( wp_remote_retrieve_body( $response ), true );
+		return $body['choices'][0]['message']['content'] ?? '';
 	}
 
 	/**
-	 * Stream from Anthropic.
+	 * Blocking fetch from Anthropic.
 	 *
-	 * @param string   $api_key  API key.
-	 * @param string   $model    Model name.
-	 * @param array    $messages Messages array.
-	 * @param callable $on_token Called with each string token as it arrives.
+	 * @param string $api_key  API key.
+	 * @param string $model    Model name.
+	 * @param array  $messages Messages array.
+	 * @return string Complete response text.
 	 */
-	private function stream_anthropic( string $api_key, string $model, array $messages, callable $on_token ): void {
-		// Anthropic requires system message to be separate.
+	private function fetch_anthropic( string $api_key, string $model, array $messages ): string {
 		$system_content = '';
-		$filtered = array();
+		$filtered       = array();
 		foreach ( $messages as $msg ) {
 			if ( 'system' === $msg['role'] ) {
 				$system_content = $msg['content'];
@@ -717,61 +697,40 @@ class GrayFox_LLM {
 			'model'      => $model,
 			'max_tokens' => $max_tokens,
 			'messages'   => $filtered,
-			'stream'     => true,
 		);
 		if ( ! empty( $system_content ) ) {
 			$body['system'] = $system_content;
 		}
 
-		$payload = wp_json_encode( $body );
-
-		$buffer = '';
-		$this->curl_stream_chunks(
-			'https://api.anthropic.com/v1/messages',
-			array(
+		$response = wp_remote_post( 'https://api.anthropic.com/v1/messages', array(
+			'headers' => array(
 				'x-api-key'         => $api_key,
 				'anthropic-version' => '2023-06-01',
 				'Content-Type'      => 'application/json',
 			),
-			$payload,
-			function ( string $chunk ) use ( &$buffer, $on_token ) {
-				$buffer .= $chunk;
-				while ( false !== ( $pos = strpos( $buffer, "\n" ) ) ) {
-					$line   = trim( substr( $buffer, 0, $pos ) );
-					$buffer = substr( $buffer, $pos + 1 );
-					if ( '' === $line || ! str_starts_with( $line, 'data: ' ) ) {
-						continue;
-					}
-					$json = json_decode( substr( $line, 6 ), true );
-					if ( json_last_error() !== JSON_ERROR_NONE ) {
-						continue;
-					}
-					if ( ( $json['type'] ?? '' ) === 'content_block_delta' ) {
-						$token = $json['delta']['text'] ?? null;
-						if ( null !== $token && '' !== $token ) {
-							$on_token( $token );
-						}
-					}
-					if ( ( $json['type'] ?? '' ) === 'message_stop' ) {
-						return;
-					}
-				}
-			}
-		);
+			'body'    => wp_json_encode( $body ),
+			'timeout' => 60,
+		) );
+
+		if ( is_wp_error( $response ) ) {
+			return '';
+		}
+
+		$decoded = json_decode( wp_remote_retrieve_body( $response ), true );
+		return $decoded['content'][0]['text'] ?? '';
 	}
 
 	/**
-	 * Stream from Google Gemini.
+	 * Blocking fetch from Google Gemini.
 	 *
-	 * @param string   $api_key  API key.
-	 * @param string   $model    Model name.
-	 * @param array    $messages Messages array.
-	 * @param callable $on_token Called with each string token as it arrives.
+	 * @param string $api_key  API key.
+	 * @param string $model    Model name.
+	 * @param array  $messages Messages array.
+	 * @return string Complete response text.
 	 */
-	private function stream_gemini( string $api_key, string $model, array $messages, callable $on_token ): void {
-		$url = 'https://generativelanguage.googleapis.com/v1beta/models/' . rawurlencode( $model ) . ':streamGenerateContent?key=' . rawurlencode( $api_key );
+	private function fetch_gemini( string $api_key, string $model, array $messages ): string {
+		$url = 'https://generativelanguage.googleapis.com/v1beta/models/' . rawurlencode( $model ) . ':generateContent?key=' . rawurlencode( $api_key );
 
-		// Convert OpenAI message format to Gemini format.
 		$contents       = array();
 		$system_content = '';
 		foreach ( $messages as $msg ) {
@@ -797,40 +756,18 @@ class GrayFox_LLM {
 			);
 		}
 
-		$payload = wp_json_encode( $body );
+		$response = wp_remote_post( $url, array(
+			'headers' => array( 'Content-Type' => 'application/json' ),
+			'body'    => wp_json_encode( $body ),
+			'timeout' => 60,
+		) );
 
-		$buffer = '';
-		$this->curl_stream_chunks(
-			$url,
-			array( 'Content-Type' => 'application/json' ),
-			$payload,
-			function ( string $chunk ) use ( &$buffer, $on_token ) {
-				$buffer .= $chunk;
-				// Gemini returns a JSON array; parse text parts as they arrive.
-				if ( preg_match_all( '/"text"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/u', $buffer, $matches ) ) {
-					foreach ( $matches[1] as $text ) {
-						$decoded = json_decode( '"' . $text . '"' );
-						if ( null !== $decoded && '' !== $decoded ) {
-							$on_token( $decoded );
-						}
-					}
-					// Clear matched portion to avoid re-processing.
-					$buffer = preg_replace( '/"text"\s*:\s*"(?:[^"\\\\]|\\\\.)*"/u', '', $buffer );
-				}
-			}
-		);
-	}
+		if ( is_wp_error( $response ) ) {
+			return '';
+		}
 
-	/**
-	 * Stream from Groq (OpenAI-compatible).
-	 *
-	 * @param string   $api_key  API key.
-	 * @param string   $model    Model name.
-	 * @param array    $messages Messages array.
-	 * @param callable $on_token Called with each string token as it arrives.
-	 */
-	private function stream_groq( string $api_key, string $model, array $messages, callable $on_token ): void {
-		$this->stream_openai( $api_key, $model, $messages, $on_token, 'https://api.groq.com/openai/v1/chat/completions' );
+		$decoded = json_decode( wp_remote_retrieve_body( $response ), true );
+		return $decoded['candidates'][0]['content']['parts'][0]['text'] ?? '';
 	}
 
 	/* ------------------------------------------------------------------
@@ -1259,45 +1196,5 @@ class GrayFox_LLM {
 		);
 	}
 
-	/**
-	 * Open a streaming HTTP POST connection via cURL and deliver raw chunks to a callback.
-	 *
-	 * Uses CURLOPT_WRITEFUNCTION so data is processed incrementally as it arrives
-	 * from the server — true streaming without buffering the full response.
-	 *
-	 * @param string   $url      Request URL.
-	 * @param array    $headers  HTTP headers (key => value).
-	 * @param string   $body     Request body (JSON).
-	 * @param callable $on_chunk Called with each raw data chunk (string) as it arrives.
-	 */
-	private function curl_stream_chunks( string $url, array $headers, string $body, callable $on_chunk ): void {
-		$header_list = array();
-		foreach ( $headers as $key => $value ) {
-			$header_list[] = $key . ': ' . $value;
-		}
-
-		// phpcs:disable WordPress.WP.AlternativeFunctions.curl_curl_init,WordPress.WP.AlternativeFunctions.curl_curl_setopt_array,WordPress.WP.AlternativeFunctions.curl_curl_exec,WordPress.WP.AlternativeFunctions.curl_curl_close
-		// wp_remote_post() buffers the full response before returning and does not expose a
-		// write callback, making it incompatible with server-sent event streaming. curl with
-		// CURLOPT_WRITEFUNCTION is the only way to process LLM tokens as they arrive.
-		$ch = curl_init();
-		curl_setopt_array( $ch, array(
-			CURLOPT_URL            => $url,
-			CURLOPT_POST           => true,
-			CURLOPT_POSTFIELDS     => $body,
-			CURLOPT_HTTPHEADER     => $header_list,
-			CURLOPT_RETURNTRANSFER => false,
-			CURLOPT_TIMEOUT        => 60,
-			CURLOPT_SSL_VERIFYPEER => true,
-			CURLOPT_SSL_VERIFYHOST => 2,
-			CURLOPT_WRITEFUNCTION  => static function ( $ch, $data ) use ( $on_chunk ) {
-				$on_chunk( $data );
-				return strlen( $data );
-			},
-		) );
-		curl_exec( $ch );
-		curl_close( $ch );
-		// phpcs:enable WordPress.WP.AlternativeFunctions.curl_curl_init,WordPress.WP.AlternativeFunctions.curl_curl_setopt_array,WordPress.WP.AlternativeFunctions.curl_curl_exec,WordPress.WP.AlternativeFunctions.curl_curl_close
-	}
 }
 } // end class_exists GrayFox_LLM

@@ -65,7 +65,7 @@ class GrayFox_Widget {
 		$config = array(
 			'ajaxUrl'           => admin_url( 'admin-ajax.php' ),
 			'nonce'             => wp_create_nonce( 'grayfox_chat' ),
-			'streamNonce'       => wp_create_nonce( 'grayfox_chat_stream' ),
+
 			'sessionId'         => '',
 			'title'             => get_option( 'grayfox_widget_name', 'Chat with us' ),
 			'primaryColor'      => get_option( 'grayfox_widget_color', '#6366f1' ),

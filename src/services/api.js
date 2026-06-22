@@ -7,7 +7,7 @@
  * @param {string} nonce
  * @param {string} sessionId
  * @param {string} message
- * @returns {Promise<{sessionId: string, streamToken: string}>}
+ * @returns {Promise<{sessionId: string, response: string}>}
  */
 async function sendMessage( ajaxUrl, nonce, sessionId, message ) {
 	const data = new FormData();
@@ -37,8 +37,8 @@ async function sendMessage( ajaxUrl, nonce, sessionId, message ) {
 	}
 
 	return {
-		sessionId:   json.data.session_id,
-		streamToken: json.data.stream_token,
+		sessionId: json.data.session_id,
+		response:  json.data.response,
 	};
 }
 
