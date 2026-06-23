@@ -55,12 +55,14 @@ class GrayFox_Plugin {
 		$chat      = new GrayFox_Chat();
 		$rag       = GrayFox_RAG::get_instance();
 		$rest_api  = new GrayFox_REST_API();
+		$voice     = new GrayFox_Voice();
 
 		$widget->register( $this->loader );
 		$shortcode->register( $this->loader );
 		$chat->register( $this->loader );
 		$rag->register( $this->loader );
 		$rest_api->register( $this->loader );
+		$voice->register( $this->loader );
 
 		if ( is_admin() ) {
 			$settings = new GrayFox_Settings();

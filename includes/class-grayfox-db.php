@@ -81,6 +81,7 @@ class GrayFox_DB {
 			visitor_id VARCHAR(64) DEFAULT NULL,
 			visitor_name VARCHAR(255) DEFAULT NULL,
 			visitor_email VARCHAR(255) DEFAULT NULL,
+			visitor_phone VARCHAR(50) DEFAULT NULL,
 			started_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			last_active_at DATETIME DEFAULT NULL,
 			message_count INT NOT NULL DEFAULT 0,

@@ -51,6 +51,13 @@
 	left: 20px;
 }
 
+.grayfox-triggers {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 12px;
+}
+
 .grayfox-trigger {
 	width: 60px;
 	height: 60px;
@@ -65,6 +72,18 @@
 	transition: transform 0.2s ease, box-shadow 0.2s ease;
 	position: relative;
 	outline: none;
+}
+
+.grayfox-trigger--voice {
+	background-color: var(--grayfox-voice-trigger, #10b981);
+}
+
+.grayfox-trigger--voice:hover {
+	box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+}
+
+.grayfox-trigger--voice:focus-visible {
+	outline-color: var(--grayfox-voice-trigger, #10b981);
 }
 
 .grayfox-trigger:hover {
@@ -121,6 +140,11 @@
 
 .grayfox-position-bottom-left .grayfox-window {
 	left: 0;
+}
+
+/* When a second (voice) trigger is present, push the window up to clear both buttons */
+.grayfox-has-voice-trigger .grayfox-window {
+	bottom: 144px;
 }
 
 @keyframes grayfox-slide-up {
@@ -413,6 +437,251 @@
 .grayfox-send-embed:focus-visible {
 	outline: 2px solid var(--grayfox-primary);
 	outline-offset: 2px;
+}
+
+/* -------------------------------------------------------
+ * Voice overlay
+ * ------------------------------------------------------- */
+.grayfox-voice-overlay {
+	position: absolute;
+	inset: 0;
+	top: 53px; /* below header */
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 32px;
+	background: var(--grayfox-bg);
+	z-index: 10;
+	padding: 24px;
+}
+
+.grayfox-voice-visualizer {
+	position: relative;
+	width: 120px;
+	height: 120px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.grayfox-voice-orb {
+	position: relative;
+	z-index: 2;
+	width: 80px;
+	height: 80px;
+	border-radius: 50%;
+	background: var(--grayfox-primary);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	box-shadow: 0 4px 16px rgba(99, 102, 241, 0.35);
+	transition: background-color 0.3s ease;
+}
+
+.grayfox-voice-overlay--speaking .grayfox-voice-orb {
+	background: #ef4444;
+	box-shadow: 0 4px 16px rgba(239, 68, 68, 0.4);
+}
+
+.grayfox-voice-ring {
+	position: absolute;
+	border-radius: 50%;
+	border: 2px solid var(--grayfox-primary);
+	opacity: 0;
+}
+
+.grayfox-voice-ring--1 { width: 96px;  height: 96px; }
+.grayfox-voice-ring--2 { width: 112px; height: 112px; }
+.grayfox-voice-ring--3 { width: 128px; height: 128px; }
+
+.grayfox-voice-overlay--speaking .grayfox-voice-ring {
+	border-color: #ef4444;
+	animation: grayfox-ring-pulse 1.5s ease-out infinite;
+}
+
+.grayfox-voice-overlay--speaking .grayfox-voice-ring--1 { animation-delay: 0s; }
+.grayfox-voice-overlay--speaking .grayfox-voice-ring--2 { animation-delay: 0.3s; }
+.grayfox-voice-overlay--speaking .grayfox-voice-ring--3 { animation-delay: 0.6s; }
+
+.grayfox-voice-overlay--connecting .grayfox-voice-ring {
+	animation: grayfox-ring-pulse 2s ease-out infinite;
+}
+.grayfox-voice-overlay--connecting .grayfox-voice-ring--1 { animation-delay: 0s; }
+.grayfox-voice-overlay--connecting .grayfox-voice-ring--2 { animation-delay: 0.5s; }
+.grayfox-voice-overlay--connecting .grayfox-voice-ring--3 { animation-delay: 1s; }
+
+@keyframes grayfox-ring-pulse {
+	0%   { transform: scale(0.85); opacity: 0.6; }
+	100% { transform: scale(1.15); opacity: 0; }
+}
+
+/* Screen-reader-only: visually hidden but announced */
+.grayfox-sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+/* Voice state label */
+.grayfox-voice-status {
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--grayfox-text-light);
+	min-height: 16px;
+}
+
+/* Sound wave bars — shown when AI is speaking */
+.grayfox-voice-bars {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	height: 32px;
+}
+
+.grayfox-voice-bars span {
+	display: block;
+	width: 4px;
+	border-radius: 2px;
+	background: white;
+	animation: grayfox-bar 0.9s ease-in-out infinite;
+}
+
+.grayfox-voice-bars span:nth-child(1) { animation-delay: 0s;    }
+.grayfox-voice-bars span:nth-child(2) { animation-delay: 0.15s; }
+.grayfox-voice-bars span:nth-child(3) { animation-delay: 0.3s;  }
+.grayfox-voice-bars span:nth-child(4) { animation-delay: 0.15s; }
+.grayfox-voice-bars span:nth-child(5) { animation-delay: 0s;    }
+
+@keyframes grayfox-bar {
+	0%, 100% { height: 6px;  opacity: 0.6; }
+	50%       { height: 26px; opacity: 1;   }
+}
+
+/* Listening state: orb breathes gently */
+.grayfox-voice-overlay--listening .grayfox-voice-orb {
+	animation: grayfox-orb-breathe 2.5s ease-in-out infinite;
+}
+
+@keyframes grayfox-orb-breathe {
+	0%, 100% { transform: scale(1);    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.35); }
+	50%       { transform: scale(1.06); box-shadow: 0 6px 24px rgba(99, 102, 241, 0.5);  }
+}
+
+/* Connecting spinner */
+.grayfox-voice-icon--connecting {
+	animation: grayfox-spin 1s linear infinite;
+	transform-origin: center;
+}
+
+@keyframes grayfox-spin {
+	to { transform: rotate(360deg); }
+}
+
+/* Disconnecting state: orb dims to grey with slow fade */
+.grayfox-voice-overlay--disconnecting .grayfox-voice-orb {
+	background: #9ca3af;
+	box-shadow: 0 4px 16px rgba(156, 163, 175, 0.3);
+	animation: grayfox-orb-fade 1.8s ease-in-out infinite;
+}
+
+.grayfox-voice-overlay--disconnecting .grayfox-voice-ring {
+	border-color: #9ca3af;
+	animation: grayfox-ring-pulse 2s ease-out infinite;
+	opacity: 0;
+}
+
+.grayfox-voice-overlay--disconnecting .grayfox-voice-ring--1 { animation-delay: 0s;   }
+.grayfox-voice-overlay--disconnecting .grayfox-voice-ring--2 { animation-delay: 0.6s; }
+.grayfox-voice-overlay--disconnecting .grayfox-voice-ring--3 { animation-delay: 1.2s; }
+
+@keyframes grayfox-orb-fade {
+	0%, 100% { opacity: 1;   }
+	50%       { opacity: 0.5; }
+}
+
+.grayfox-voice-end {
+	padding: 10px 28px;
+	border-radius: 8px;
+	border: none;
+	background: #ef4444;
+	color: #ffffff;
+	font-size: 14px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: background-color 0.15s;
+}
+
+.grayfox-voice-end:hover {
+	background: #dc2626;
+}
+
+.grayfox-voice-end:focus-visible {
+	outline: 2px solid #ef4444;
+	outline-offset: 2px;
+}
+
+/* -------------------------------------------------------
+ * Mic button
+ * ------------------------------------------------------- */
+.grayfox-mic {
+	width: 40px;
+	height: 40px;
+	border-radius: 8px;
+	border: none;
+	background-color: #6b7280;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: background-color 0.15s;
+	flex-shrink: 0;
+	color: #ffffff;
+}
+
+.grayfox-mic:hover {
+	background-color: #4b5563;
+}
+
+.grayfox-mic:focus-visible {
+	outline: 2px solid var(--grayfox-primary);
+	outline-offset: 2px;
+}
+
+.grayfox-mic:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.grayfox-mic.grayfox-mic--connecting {
+	background-color: var(--grayfox-primary);
+	animation: grayfox-mic-pulse 1s ease-in-out infinite;
+}
+
+.grayfox-mic.grayfox-mic--active {
+	background-color: #ef4444;
+}
+
+.grayfox-mic.grayfox-mic--active:hover {
+	background-color: #dc2626;
+}
+
+.grayfox-mic.grayfox-mic--speaking {
+	background-color: #ef4444;
+	animation: grayfox-mic-pulse 0.8s ease-in-out infinite;
+}
+
+@keyframes grayfox-mic-pulse {
+	0%, 100% { opacity: 1; }
+	50%       { opacity: 0.6; }
 }
 
 /* -------------------------------------------------------

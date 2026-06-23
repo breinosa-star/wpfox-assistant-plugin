@@ -65,6 +65,8 @@ class GrayFox_Widget {
 		$config = array(
 			'ajaxUrl'           => admin_url( 'admin-ajax.php' ),
 			'nonce'             => wp_create_nonce( 'grayfox_chat' ),
+			'restUrl'           => rest_url( 'grayfox/v1' ),
+			'restNonce'         => wp_create_nonce( 'wp_rest' ),
 
 			'sessionId'         => '',
 			'title'             => get_option( 'grayfox_widget_name', 'Chat with us' ),
@@ -74,6 +76,12 @@ class GrayFox_Widget {
 			'siteUrl'           => get_site_url(),
 			'version'           => GRAYFOX_VERSION,
 			'inactivityMinutes' => (int) get_option( 'grayfox_inactivity_timeout', 5 ),
+			'voiceEnabled'           => (bool) get_option( 'grayfox_voice_enabled', false ),
+			'voiceTriggerColor'      => get_option( 'grayfox_voice_trigger_color', '#10b981' ),
+			'voiceLabelConnecting'   => get_option( 'grayfox_voice_label_connecting',    'Connecting' ),
+			'voiceLabelSpeaking'     => get_option( 'grayfox_voice_label_speaking',      'Speaking' ),
+			'voiceLabelListening'    => get_option( 'grayfox_voice_label_listening',     'Listening' ),
+			'voiceLabelDisconnecting'=> get_option( 'grayfox_voice_label_disconnecting', 'Disconnecting' ),
 		);
 		$config = apply_filters( 'grayfox_widget_config', $config );
 		wp_localize_script( 'grayfox-chat', 'GrayFoxConfig', $config );

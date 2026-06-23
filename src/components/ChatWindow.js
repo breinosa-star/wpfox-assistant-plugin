@@ -1,10 +1,11 @@
 'use strict';
 
-const api            = require( '../services/api' );
-const session        = require( '../store/session' );
-const MessageList    = require( './MessageList' );
-const MessageInput   = require( './MessageInput' );
+const api             = require( '../services/api' );
+const session         = require( '../store/session' );
+const MessageList     = require( './MessageList' );
+const MessageInput    = require( './MessageInput' );
 const TypingIndicator = require( './TypingIndicator' );
+const { VoiceClient } = require( '../services/voice-client' );
 
 const WARNING_MS = 60 * 1000;
 
@@ -41,7 +42,13 @@ function ChatWindow( widgetEl, config ) {
 		this.sendBtn = widgetEl.querySelector( '#grayfox-send' );
 	}
 
-	this.closeBtn = widgetEl.querySelector( '.grayfox-close' );
+	this.closeBtn      = widgetEl.querySelector( '.grayfox-close' );
+	this.micBtn        = widgetEl.querySelector( '#grayfox-mic' );
+	this.voiceOverlay  = widgetEl.querySelector( '#grayfox-voice-overlay' );
+	this.voiceStatusEl = widgetEl.querySelector( '.grayfox-voice-status' );
+	this.voiceEndBtn   = widgetEl.querySelector( '.grayfox-voice-end' );
+
+	this._voiceClient = null;
 }
 
 ChatWindow.prototype.initialize = function () {
@@ -75,6 +82,18 @@ ChatWindow.prototype.initialize = function () {
 		if ( e.key === 'Escape' && self.isOpen ) self.close();
 	} );
 
+	if ( this.micBtn ) {
+		this.micBtn.addEventListener( 'click', function () {
+			self._toggleVoice();
+		} );
+	}
+
+	if ( this.voiceEndBtn ) {
+		this.voiceEndBtn.addEventListener( 'click', function () {
+			if ( self._voiceClient ) self._voiceClient.disconnect( false );
+		} );
+	}
+
 	this.restoreSession();
 
 	if ( this.sessionId ) this.resetInactivityTimer();
@@ -98,10 +117,22 @@ ChatWindow.prototype.close = function () {
 	this.windowEl.style.display = 'none';
 	this.isOpen = false;
 	this.widgetEl.classList.remove( 'grayfox-open' );
+
+	if ( this._voiceClient ) {
+		this._voiceClient.stop();
+		this._voiceClient = null;
+	}
 };
 
 ChatWindow.prototype.toggle = function () {
 	this.isOpen ? this.close() : this.open();
+};
+
+ChatWindow.prototype.openInVoiceMode = function () {
+	if ( ! this.isOpen ) this.open();
+	if ( ! this._voiceClient || this._voiceClient.getState() === 'idle' || this._voiceClient.getState() === 'ended' ) {
+		this._startVoice();
+	}
 };
 
 ChatWindow.prototype.sendMessage = function ( text ) {
@@ -304,6 +335,120 @@ ChatWindow.prototype.startThrottleCountdown = function ( seconds ) {
 	}
 
 	tick();
+};
+
+// ─── Voice ───────────────────────────────────────────────────────────────────
+
+ChatWindow.prototype._toggleVoice = function () {
+	if ( this._voiceClient && this._voiceClient.getState() === 'active' ) {
+		this._voiceClient.stop();
+	} else {
+		this._startVoice();
+	}
+};
+
+ChatWindow.prototype._startVoice = function () {
+	const self   = this;
+	const config = this.config;
+
+	this._voiceClient = new VoiceClient( {
+		restUrl:    config.restUrl   || '',
+		restNonce:  config.restNonce || '',
+		onStateChange: function ( state ) {
+			self._onVoiceStateChange( state );
+		},
+		onError: function ( message ) {
+			MessageList.appendMessage( self.messagesEl, 'assistant', message, 'error' );
+			self._onVoiceStateChange( 'idle' );
+		},
+		onAiSpeaking: function ( speaking ) {
+			if ( self.voiceOverlay ) {
+				if ( speaking ) {
+					self.voiceOverlay.classList.remove( 'grayfox-voice-overlay--connecting' );
+				}
+				self.voiceOverlay.classList.toggle( 'grayfox-voice-overlay--speaking',  speaking );
+				self.voiceOverlay.classList.toggle( 'grayfox-voice-overlay--listening', ! speaking );
+			}
+			const connectingIcon = self.voiceOverlay ? self.voiceOverlay.querySelector( '.grayfox-voice-icon--connecting' ) : null;
+			const micIcon        = self.voiceOverlay ? self.voiceOverlay.querySelector( '.grayfox-voice-icon--mic' )        : null;
+			const bars           = self.voiceOverlay ? self.voiceOverlay.querySelector( '.grayfox-voice-bars' )             : null;
+			if ( connectingIcon ) connectingIcon.style.display = 'none';
+			if ( micIcon ) micIcon.style.display = speaking ? 'none' : '';
+			if ( bars )    bars.style.display    = speaking ? 'flex' : 'none';
+			if ( self.voiceStatusEl ) {
+				self.voiceStatusEl.textContent = speaking
+					? ( config.voiceLabelSpeaking  || '' )
+					: ( config.voiceLabelListening || '' );
+			}
+		},
+	} );
+
+	this._voiceClient.start();
+};
+
+ChatWindow.prototype._onVoiceStateChange = function ( state ) {
+	const showOverlay = ( state === 'active' || state === 'connecting' || state === 'disconnecting' );
+
+	// Show/hide the voice overlay and text UI.
+	if ( this.voiceOverlay ) {
+		this.voiceOverlay.style.display = showOverlay ? 'flex' : 'none';
+		// --connecting stays on through 'active' until onAiSpeaking(true) clears it.
+		if ( state === 'connecting' ) {
+			this.voiceOverlay.classList.add( 'grayfox-voice-overlay--connecting' );
+		}
+		this.voiceOverlay.classList.toggle( 'grayfox-voice-overlay--disconnecting', state === 'disconnecting' );
+		if ( state === 'disconnecting' || state === 'ended' || state === 'error' ) {
+			this.voiceOverlay.classList.remove(
+				'grayfox-voice-overlay--connecting',
+				'grayfox-voice-overlay--speaking',
+				'grayfox-voice-overlay--listening'
+			);
+		}
+	}
+	if ( this.messagesEl ) {
+		this.messagesEl.style.display = showOverlay ? 'none' : '';
+	}
+	const inputArea = this.widgetEl.querySelector( '.grayfox-input-area' );
+	if ( inputArea ) {
+		inputArea.style.display = showOverlay ? 'none' : '';
+	}
+
+	// Disable end button and reset icons during disconnecting.
+	if ( state === 'disconnecting' ) {
+		if ( this.voiceEndBtn ) this.voiceEndBtn.disabled = true;
+		const connectingIcon = this.voiceOverlay ? this.voiceOverlay.querySelector( '.grayfox-voice-icon--connecting' ) : null;
+		const micIcon        = this.voiceOverlay ? this.voiceOverlay.querySelector( '.grayfox-voice-icon--mic' )        : null;
+		const bars           = this.voiceOverlay ? this.voiceOverlay.querySelector( '.grayfox-voice-bars' )             : null;
+		if ( connectingIcon ) connectingIcon.style.display = 'none';
+		if ( micIcon ) micIcon.style.display = '';
+		if ( bars )    bars.style.display    = 'none';
+	} else if ( this.voiceEndBtn ) {
+		this.voiceEndBtn.disabled = false;
+	}
+
+	// Update status label.
+	if ( this.voiceStatusEl ) {
+		if ( state === 'connecting' || state === 'active' ) {
+			this.voiceStatusEl.textContent = this.config.voiceLabelConnecting || '';
+		}
+		if ( state === 'disconnecting' ) {
+			this.voiceStatusEl.textContent = this.config.voiceLabelDisconnecting || '';
+		}
+		if ( state === 'ended' || state === 'error' ) {
+			this.voiceStatusEl.textContent = '';
+		}
+	}
+
+	// Intentional end → close the whole widget.
+	if ( state === 'ended' ) {
+		this._voiceClient = null;
+		this.close();
+	}
+
+	// Error → stay open in text mode so the user can see what went wrong.
+	if ( state === 'error' ) {
+		this._voiceClient = null;
+	}
 };
 
 ChatWindow.prototype.showError = function ( message ) {

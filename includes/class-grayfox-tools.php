@@ -104,12 +104,9 @@ class GrayFox_Tool_Search_KB extends GrayFox_Tool {
 /**
  * Tool: capture_customer_email
  *
- * Saves a customer's email address (and optionally name and area of interest)
- * to the current conversation record. Fires a WordPress action so other plugin
- * components (e.g. CRM integrations) can hook in.
- *
- * Call this when a customer expresses genuine interest in a service and
- * voluntarily provides or agrees to share their email.
+ * Saves a customer's contact details (email and/or phone, plus optional name
+ * and area of interest) to the current conversation record. At least one of
+ * email or phone is required. Fires a WordPress action for CRM integrations.
  */
 if ( ! class_exists( 'GrayFox_Tool_Capture_Email' ) ) {
 class GrayFox_Tool_Capture_Email extends GrayFox_Tool {
@@ -123,15 +120,19 @@ class GrayFox_Tool_Capture_Email extends GrayFox_Tool {
 			'type'     => 'function',
 			'function' => array(
 				'name'        => 'capture_customer_email',
-				'description' => 'Save a customer\'s email address when they voluntarily provide it or agree to be contacted. '
-					. 'Only call this after the customer has explicitly shared their email. '
-					. 'Do not ask for an email unless the customer has expressed clear interest in a specific service.',
+				'description' => 'Save a customer\'s contact details when they voluntarily provide them and agree to be contacted. '
+					. 'At least one of email or phone is required; both are optional individually. '
+					. 'Only call this after the customer has explicitly shared their contact information and expressed clear interest in a service.',
 				'parameters'  => array(
 					'type'       => 'object',
 					'properties' => array(
 						'email'    => array(
 							'type'        => 'string',
-							'description' => 'The customer\'s email address.',
+							'description' => 'The customer\'s email address (optional if phone is provided).',
+						),
+						'phone'    => array(
+							'type'        => 'string',
+							'description' => 'The customer\'s phone number (optional if email is provided).',
 						),
 						'name'     => array(
 							'type'        => 'string',
@@ -142,7 +143,7 @@ class GrayFox_Tool_Capture_Email extends GrayFox_Tool {
 							'description' => 'Brief description of the service or topic the customer expressed interest in.',
 						),
 					),
-					'required'             => array( 'email' ),
+					'required'             => array(),
 					'additionalProperties' => false,
 				),
 			),
@@ -150,21 +151,33 @@ class GrayFox_Tool_Capture_Email extends GrayFox_Tool {
 	}
 
 	public function execute( array $args ): string {
-		$email    = isset( $args['email'] )    ? sanitize_email( $args['email'] )         : '';
-		$name     = isset( $args['name'] )     ? sanitize_text_field( $args['name'] )     : '';
-		$interest = isset( $args['interest'] ) ? sanitize_text_field( $args['interest'] ) : '';
+		$email    = isset( $args['email'] )    ? sanitize_email( $args['email'] )               : '';
+		$phone    = isset( $args['phone'] )    ? sanitize_text_field( $args['phone'] )           : '';
+		$name     = isset( $args['name'] )     ? sanitize_text_field( $args['name'] )            : '';
+		$interest = isset( $args['interest'] ) ? sanitize_text_field( $args['interest'] )        : '';
 
-		if ( empty( $email ) || ! is_email( $email ) ) {
-			return wp_json_encode( array( 'error' => 'Invalid email address provided.' ) );
+		$has_email = ! empty( $email ) && is_email( $email );
+		$has_phone = ! empty( $phone );
+
+		if ( ! $has_email && ! $has_phone ) {
+			return wp_json_encode( array( 'error' => 'At least one of email or phone is required.' ) );
 		}
 
 		$conversation_id = GrayFox_Tools::get_conversation_id();
 
 		if ( $conversation_id > 0 ) {
 			global $wpdb;
-			$conv_table = GrayFox_DB::get_table( 'conversations' );
-			$update_data = array( 'visitor_email' => $email );
-			$update_format = array( '%s' );
+			$conv_table    = GrayFox_DB::get_table( 'conversations' );
+			$update_data   = array();
+			$update_format = array();
+			if ( $has_email ) {
+				$update_data['visitor_email'] = $email;
+				$update_format[]              = '%s';
+			}
+			if ( $has_phone ) {
+				$update_data['visitor_phone'] = $phone;
+				$update_format[]              = '%s';
+			}
 			if ( ! empty( $name ) ) {
 				$update_data['visitor_name'] = $name;
 				$update_format[]             = '%s';
@@ -173,19 +186,23 @@ class GrayFox_Tool_Capture_Email extends GrayFox_Tool {
 		}
 
 		/**
-		 * Fires when a customer email is captured via the chat assistant.
+		 * Fires when a customer lead is captured via the chat assistant.
 		 *
-		 * @param string $email           Validated email address.
+		 * @param string $email           Validated email address (may be empty).
 		 * @param string $name            Customer name (may be empty).
 		 * @param string $interest        Service or topic of interest (may be empty).
 		 * @param int    $conversation_id Conversation DB row ID (0 if unavailable).
+		 * @param string $phone           Phone number (may be empty).
 		 */
-		do_action( 'grayfox_lead_captured', $email, $name, $interest, $conversation_id );
+		do_action( 'grayfox_lead_captured', $email, $name, $interest, $conversation_id, $phone );
+
+		$captured = array();
+		if ( $has_email ) { $captured[] = 'email: ' . $email; }
+		if ( $has_phone ) { $captured[] = 'phone: ' . $phone; }
 
 		return wp_json_encode( array(
-			'success'        => true,
-			'email_captured' => $email,
-			'message'        => 'Email saved successfully. Do not ask for the email again — reference it as ' . $email . ' in any follow-up.',
+			'success' => true,
+			'message' => 'Contact details saved (' . implode( ', ', $captured ) . '). Do not ask for contact information again.',
 		) );
 	}
 }

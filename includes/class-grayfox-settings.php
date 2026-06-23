@@ -295,6 +295,119 @@ class GrayFox_Settings {
 			'grayfox_public_kb_api'
 		);
 
+		// --- Voice Agent Section ---
+		add_settings_section(
+			'grayfox_voice',
+			__( 'Voice Agent', 'kbfox' ),
+			array( $this, 'render_voice_section' ),
+			self::PAGE_SLUG
+		);
+
+		register_setting( self::OPTION_GROUP, 'grayfox_voice_enabled', array(
+			'type'              => 'boolean',
+			'sanitize_callback' => 'rest_sanitize_boolean',
+			'default'           => false,
+		) );
+
+		add_settings_field(
+			'grayfox_voice_enabled',
+			__( 'Enable voice agent', 'kbfox' ),
+			array( $this, 'render_voice_enabled_field' ),
+			self::PAGE_SLUG,
+			'grayfox_voice'
+		);
+
+		register_setting( self::OPTION_GROUP, 'grayfox_voice_voice', array(
+			'type'              => 'string',
+			'sanitize_callback' => array( $this, 'sanitize_voice_voice' ),
+			'default'           => 'alloy',
+		) );
+
+		add_settings_field(
+			'grayfox_voice_voice',
+			__( 'Voice', 'kbfox' ),
+			array( $this, 'render_voice_voice_field' ),
+			self::PAGE_SLUG,
+			'grayfox_voice'
+		);
+
+		register_setting( self::OPTION_GROUP, 'grayfox_voice_max_duration', array(
+			'type'              => 'integer',
+			'sanitize_callback' => array( $this, 'sanitize_voice_max_duration' ),
+			'default'           => 5,
+		) );
+
+		add_settings_field(
+			'grayfox_voice_max_duration',
+			__( 'Max session duration', 'kbfox' ),
+			array( $this, 'render_voice_max_duration_field' ),
+			self::PAGE_SLUG,
+			'grayfox_voice'
+		);
+
+		register_setting( self::OPTION_GROUP, 'grayfox_voice_language', array(
+			'type'              => 'string',
+			'sanitize_callback' => array( $this, 'sanitize_voice_language' ),
+			'default'           => 'en',
+		) );
+
+		add_settings_field(
+			'grayfox_voice_language',
+			__( 'Primary language', 'kbfox' ),
+			array( $this, 'render_voice_language_field' ),
+			self::PAGE_SLUG,
+			'grayfox_voice'
+		);
+
+		register_setting( self::OPTION_GROUP, 'grayfox_voice_trigger_color', array(
+			'type'              => 'string',
+			'sanitize_callback' => 'sanitize_hex_color',
+			'default'           => '#10b981',
+		) );
+
+		add_settings_field(
+			'grayfox_voice_trigger_color',
+			__( 'Voice button color', 'kbfox' ),
+			array( $this, 'render_voice_trigger_color_field' ),
+			self::PAGE_SLUG,
+			'grayfox_voice'
+		);
+
+		register_setting( self::OPTION_GROUP, 'grayfox_voice_first_question', array(
+			'type'              => 'string',
+			'sanitize_callback' => 'sanitize_textarea_field',
+			'default'           => 'What can we help you with today?',
+		) );
+
+		add_settings_field(
+			'grayfox_voice_first_question',
+			__( 'First question', 'kbfox' ),
+			array( $this, 'render_voice_first_question_field' ),
+			self::PAGE_SLUG,
+			'grayfox_voice'
+		);
+
+		foreach ( array(
+			'grayfox_voice_label_connecting'    => 'Connecting',
+			'grayfox_voice_label_speaking'      => 'Speaking',
+			'grayfox_voice_label_listening'     => 'Listening',
+			'grayfox_voice_label_disconnecting' => 'Disconnecting',
+		) as $option => $default ) {
+			register_setting( self::OPTION_GROUP, $option, array(
+				'type'              => 'string',
+				'sanitize_callback' => array( $this, 'sanitize_voice_label' ),
+				'default'           => $default,
+			) );
+		}
+
+		add_settings_field(
+			'grayfox_voice_labels',
+			__( 'Status labels', 'kbfox' ),
+			array( $this, 'render_voice_labels_field' ),
+			self::PAGE_SLUG,
+			'grayfox_voice'
+		);
+
 		do_action( 'grayfox_register_settings', self::PAGE_SLUG, self::OPTION_GROUP );
 	}
 
@@ -593,6 +706,170 @@ class GrayFox_Settings {
 		<?php
 	}
 
+	/** Render voice agent section description. */
+	public function render_voice_section(): void {
+		echo '<p>' . esc_html__( 'Enable a voice agent powered by the OpenAI Realtime API. Visitors can speak directly to the assistant — the knowledge base and lead capture work exactly as in text chat. Requires OpenAI as the LLM provider and an HTTPS site. Realtime API usage is billed separately from text usage (~$0.06/min audio input, ~$0.24/min audio output).', 'kbfox' ) . '</p>';
+	}
+
+	/** Render enable voice agent toggle. */
+	public function render_voice_enabled_field(): void {
+		$enabled  = (bool) get_option( 'grayfox_voice_enabled', false );
+		$provider = get_option( 'grayfox_llm_provider', 'openai' );
+		$is_https = is_ssl();
+		?>
+		<label>
+			<input type="checkbox"
+				   id="grayfox_voice_enabled"
+				   name="grayfox_voice_enabled"
+				   value="1"
+				   <?php checked( $enabled ); ?>
+				   <?php disabled( 'openai' !== $provider || ! $is_https ); ?> />
+			<?php esc_html_e( 'Add a microphone button to the chat widget', 'kbfox' ); ?>
+		</label>
+		<p class="description">
+			<?php esc_html_e( 'HTTPS is required — browsers only allow microphone access (getUserMedia) on secure origins.', 'kbfox' ); ?>
+		</p>
+		<?php if ( 'openai' !== $provider ) : ?>
+		<p class="description" style="color:#d63638;">
+			<?php esc_html_e( 'Voice agent requires OpenAI as the LLM provider.', 'kbfox' ); ?>
+		</p>
+		<?php elseif ( ! $is_https ) : ?>
+		<p class="description" style="color:#d63638;">
+			<?php esc_html_e( 'Voice agent requires HTTPS. Your site is currently served over HTTP.', 'kbfox' ); ?>
+		</p>
+		<?php endif; ?>
+		<?php
+	}
+
+	/** Render voice selection dropdown. */
+	public function render_voice_voice_field(): void {
+		$value  = get_option( 'grayfox_voice_voice', 'alloy' );
+		$voices = array(
+			'alloy'   => 'Alloy',
+			'ash'     => 'Ash',
+			'ballad'  => 'Ballad',
+			'cedar'   => 'Cedar',
+			'coral'   => 'Coral',
+			'echo'    => 'Echo',
+			'marin'   => 'Marin',
+			'sage'    => 'Sage',
+			'shimmer' => 'Shimmer',
+			'verse'   => 'Verse',
+		);
+		?>
+		<select id="grayfox_voice_voice" name="grayfox_voice_voice">
+			<?php foreach ( $voices as $key => $label ) : ?>
+				<option value="<?php echo esc_attr( $key ); ?>" <?php selected( $value, $key ); ?>>
+					<?php echo esc_html( $label ); ?>
+				</option>
+			<?php endforeach; ?>
+		</select>
+		<p class="description">
+			<?php esc_html_e( 'The voice used by the OpenAI Realtime API during voice sessions.', 'kbfox' ); ?>
+		</p>
+		<?php
+	}
+
+	/** Render max session duration field. */
+	public function render_voice_max_duration_field(): void {
+		$value   = (int) get_option( 'grayfox_voice_max_duration', 5 );
+		$default = 5;
+		?>
+		<input type="number"
+			   id="grayfox_voice_max_duration"
+			   name="grayfox_voice_max_duration"
+			   value="<?php echo esc_attr( $value ); ?>"
+			   class="small-text"
+			   min="1"
+			   max="15"
+			   step="1" />
+		<span style="margin-left:4px;"><?php esc_html_e( 'minutes', 'kbfox' ); ?></span>
+		<a href="#" class="grayfox-restore-default" data-target="grayfox_voice_max_duration" data-default="<?php echo esc_attr( $default ); ?>" style="margin-left:8px;">
+			<?php esc_html_e( 'Restore default', 'kbfox' ); ?>
+		</a>
+		<p class="description">
+			<?php esc_html_e( 'Voice session is automatically ended after this many minutes. Range: 1–15. Default: 5.', 'kbfox' ); ?>
+		</p>
+		<?php
+	}
+
+	/** Render primary language dropdown. */
+	public function render_voice_language_field(): void {
+		$value     = get_option( 'grayfox_voice_language', 'en' );
+		$languages = array(
+			'en' => 'English',
+			'es' => 'Spanish',
+			'zh' => 'Chinese (Mandarin)',
+			'tl' => 'Tagalog',
+			'vi' => 'Vietnamese',
+			'fr' => 'French',
+		);
+		?>
+		<select id="grayfox_voice_language" name="grayfox_voice_language">
+			<?php foreach ( $languages as $code => $label ) : ?>
+				<option value="<?php echo esc_attr( $code ); ?>" <?php selected( $value, $code ); ?>>
+					<?php echo esc_html( $label ); ?>
+				</option>
+			<?php endforeach; ?>
+		</select>
+		<p class="description">
+			<?php esc_html_e( 'The language the voice agent will speak. The agent will respond in this language regardless of what language the visitor uses.', 'kbfox' ); ?>
+		</p>
+		<?php
+	}
+
+	/** Render voice trigger color picker. */
+	public function render_voice_trigger_color_field(): void {
+		$value = get_option( 'grayfox_voice_trigger_color', '#10b981' );
+		?>
+		<input type="color"
+			   id="grayfox_voice_trigger_color"
+			   name="grayfox_voice_trigger_color"
+			   value="<?php echo esc_attr( $value ); ?>" />
+		<p class="description">
+			<?php esc_html_e( 'Background color of the voice trigger button.', 'kbfox' ); ?>
+		</p>
+		<?php
+	}
+
+	/** Render four voice status label inputs as a compact group. */
+	public function render_voice_labels_field(): void {
+		$labels = array(
+			'grayfox_voice_label_connecting'    => array( __( 'Connecting', 'kbfox' ),    'Connecting' ),
+			'grayfox_voice_label_speaking'      => array( __( 'Speaking', 'kbfox' ),      'Speaking' ),
+			'grayfox_voice_label_listening'     => array( __( 'Listening', 'kbfox' ),     'Listening' ),
+			'grayfox_voice_label_disconnecting' => array( __( 'Disconnecting', 'kbfox' ), 'Disconnecting' ),
+		);
+		echo '<div style="display:grid;grid-template-columns:100px 1fr;gap:6px 12px;align-items:center;max-width:360px;">';
+		foreach ( $labels as $option => $pair ) {
+			list( $label, $default ) = $pair;
+			$value = get_option( $option, $default );
+			printf(
+				'<label for="%1$s" style="font-weight:normal;">%2$s</label>
+				 <input type="text" id="%1$s" name="%1$s" value="%3$s" maxlength="24" class="regular-text" style="max-width:180px;" />',
+				esc_attr( $option ),
+				esc_html( $label ),
+				esc_attr( $value )
+			);
+		}
+		echo '</div>';
+		echo '<p class="description" style="margin-top:6px;">' . esc_html__( 'Shown below the graphic during each call state. Max 24 characters. Leave blank to hide.', 'kbfox' ) . '</p>';
+	}
+
+	/** Render voice first question textarea. */
+	public function render_voice_first_question_field(): void {
+		$value = get_option( 'grayfox_voice_first_question', 'What can we help you with today?' );
+		?>
+		<textarea id="grayfox_voice_first_question"
+				  name="grayfox_voice_first_question"
+				  rows="2"
+				  class="large-text"><?php echo esc_textarea( $value ); ?></textarea>
+		<p class="description">
+			<?php esc_html_e( 'The question the agent asks immediately after the customer responds to the greeting. This opens the conversation.', 'kbfox' ); ?>
+		</p>
+		<?php
+	}
+
 	/** Render public KB API section description. */
 	public function render_public_kb_api_section(): void {
 		echo '<p>' . esc_html__( 'Expose your knowledge base as a public REST API so AI agents (ChatGPT, Claude, etc.) can discover and query it. Only enable this if your KB contains customer-facing information — it will be publicly accessible without authentication.', 'kbfox' ) . '</p>';
@@ -731,6 +1008,38 @@ class GrayFox_Settings {
 	 * --------------------------------------------------------- */
 
 	/**
+	 * Sanitize max voice session duration: integer clamped 1–15 minutes, default 5.
+	 *
+	 * @param mixed $input Raw input.
+	 * @return int
+	 */
+	public function sanitize_voice_max_duration( $input ): int {
+		$val = (int) $input;
+		if ( $val < 1 || $val > 15 ) {
+			return 5;
+		}
+		return $val;
+	}
+
+	/**
+	 * Sanitize voice selection to allowed OpenAI Realtime API voice names.
+	 *
+	 * @param mixed $input Raw input.
+	 * @return string
+	 */
+	public function sanitize_voice_voice( $input ): string {
+		$allowed = array( 'alloy', 'ash', 'ballad', 'cedar', 'coral', 'echo', 'marin', 'sage', 'shimmer', 'verse' );
+		$input   = sanitize_text_field( (string) $input );
+		return in_array( $input, $allowed, true ) ? $input : 'alloy';
+	}
+
+	public function sanitize_voice_language( $input ): string {
+		$allowed = array( 'en', 'es', 'zh', 'tl', 'vi', 'fr' );
+		$input   = sanitize_text_field( (string) $input );
+		return in_array( $input, $allowed, true ) ? $input : 'en';
+	}
+
+	/**
 	 * Sanitize public KB API rate limit: integer clamped 10–600, default 60.
 	 *
 	 * @param mixed $input Raw input.
@@ -845,6 +1154,17 @@ class GrayFox_Settings {
 			return 5;
 		}
 		return $val;
+	}
+
+	/**
+	 * Sanitize a voice status label: plain text, max 24 characters.
+	 *
+	 * @param mixed $input Raw input.
+	 * @return string
+	 */
+	public function sanitize_voice_label( $input ): string {
+		$value = sanitize_text_field( (string) $input );
+		return mb_substr( $value, 0, 24 );
 	}
 
 	/**

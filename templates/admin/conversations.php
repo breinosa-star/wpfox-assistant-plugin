@@ -46,13 +46,14 @@ $grayfox_conversations = $wpdb->get_results( $wpdb->prepare( // phpcs:ignore Wor
 	$grayfox_date_to
 ), ARRAY_A );
 
-// Fetch leads: conversations with at least a name or email, filtered by the same date range.
+// Fetch leads: conversations with at least a name, email, or phone, filtered by the same date range.
 $grayfox_leads = $wpdb->get_results( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-	"SELECT id, visitor_name, visitor_email, started_at, last_active_at, message_count
+	"SELECT id, visitor_name, visitor_email, visitor_phone, started_at, last_active_at, message_count
 	 FROM %i
 	 WHERE started_at >= %s AND started_at <= %s
 	   AND ( ( visitor_name IS NOT NULL AND visitor_name <> '' )
-	      OR ( visitor_email IS NOT NULL AND visitor_email <> '' ) )
+	      OR ( visitor_email IS NOT NULL AND visitor_email <> '' )
+	      OR ( visitor_phone IS NOT NULL AND visitor_phone <> '' ) )
 	 ORDER BY started_at DESC
 	 LIMIT 200",
 	$grayfox_conv_table,
@@ -149,7 +150,7 @@ $grayfox_leads = $wpdb->get_results( $wpdb->prepare( // phpcs:ignore WordPress.D
 	<hr style="margin:40px 0 24px;" />
 
 	<h2><?php esc_html_e( 'Leads', 'kbfox' ); ?></h2>
-	<p class="description"><?php esc_html_e( 'Visitors who shared their name or email during a conversation.', 'kbfox' ); ?></p>
+	<p class="description"><?php esc_html_e( 'Visitors who shared their name, email, or phone during a conversation.', 'kbfox' ); ?></p>
 
 	<?php if ( empty( $grayfox_leads ) ) : ?>
 		<p><?php esc_html_e( 'No leads found for the selected period.', 'kbfox' ); ?></p>
@@ -159,6 +160,7 @@ $grayfox_leads = $wpdb->get_results( $wpdb->prepare( // phpcs:ignore WordPress.D
 				<tr>
 					<th><?php esc_html_e( 'Name', 'kbfox' ); ?></th>
 					<th><?php esc_html_e( 'Email', 'kbfox' ); ?></th>
+					<th><?php esc_html_e( 'Phone', 'kbfox' ); ?></th>
 					<th><?php esc_html_e( 'Date', 'kbfox' ); ?></th>
 					<th><?php esc_html_e( 'Last Active', 'kbfox' ); ?></th>
 					<th><?php esc_html_e( 'Messages', 'kbfox' ); ?></th>
@@ -180,6 +182,15 @@ $grayfox_leads = $wpdb->get_results( $wpdb->prepare( // phpcs:ignore WordPress.D
 								—
 							<?php endif; ?>
 						</td>
+						<td>
+							<?php if ( ! empty( $grayfox_lead['visitor_phone'] ) ) : ?>
+								<a href="tel:<?php echo esc_attr( $grayfox_lead['visitor_phone'] ); ?>">
+									<?php echo esc_html( $grayfox_lead['visitor_phone'] ); ?>
+								</a>
+							<?php else : ?>
+								—
+							<?php endif; ?>
+						</td>
 						<td><?php echo esc_html( $grayfox_lead['started_at'] ); ?></td>
 						<td><?php echo esc_html( $grayfox_lead['last_active_at'] ?? '—' ); ?></td>
 						<td><?php echo esc_html( number_format_i18n( (int) $grayfox_lead['message_count'] ) ); ?></td>
@@ -194,7 +205,7 @@ $grayfox_leads = $wpdb->get_results( $wpdb->prepare( // phpcs:ignore WordPress.D
 					<tr id="grayfox-conv-detail-<?php echo esc_attr( $grayfox_lead_id ); ?>"
 						class="grayfox-conv-detail"
 						style="display:none;">
-						<td colspan="6">
+						<td colspan="7">
 							<?php
 							$grayfox_lead_messages = $wpdb->get_results( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 								"SELECT role, content, created_at FROM `{$grayfox_msg_table}` WHERE conversation_id = %d ORDER BY created_at ASC", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared

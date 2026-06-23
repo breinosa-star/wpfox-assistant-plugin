@@ -32,6 +32,13 @@ function init() {
 			} );
 		}
 
+		const voiceTriggerEl = document.getElementById( 'grayfox-voice-trigger' );
+		if ( voiceTriggerEl ) {
+			voiceTriggerEl.addEventListener( 'click', function () {
+				widget.openInVoiceMode();
+			} );
+		}
+
 		const closeBtn = widgetEl.querySelector( '.grayfox-close' );
 		if ( closeBtn ) {
 			closeBtn.addEventListener( 'click', function () {

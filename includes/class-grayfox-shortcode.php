@@ -92,6 +92,8 @@ class GrayFox_Shortcode {
 		wp_localize_script( 'grayfox-chat', 'GrayFoxConfig', array(
 			'ajaxUrl'           => admin_url( 'admin-ajax.php' ),
 			'nonce'             => wp_create_nonce( 'grayfox_chat' ),
+			'restUrl'           => rest_url( 'grayfox/v1' ),
+			'restNonce'         => wp_create_nonce( 'wp_rest' ),
 
 			'sessionId'         => '',
 			'title'             => get_option( 'grayfox_widget_name', 'Chat with us' ),
@@ -101,6 +103,7 @@ class GrayFox_Shortcode {
 			'siteUrl'           => get_site_url(),
 			'version'           => GRAYFOX_VERSION,
 			'inactivityMinutes' => (int) get_option( 'grayfox_inactivity_timeout', 5 ),
+			'voiceEnabled'      => (bool) get_option( 'grayfox_voice_enabled', false ),
 		) );
 
 		$this->enqueued = true;

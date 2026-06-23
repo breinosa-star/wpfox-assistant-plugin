@@ -97,6 +97,7 @@ require_once GRAYFOX_PATH . 'includes/class-grayfox-widget.php';
 require_once GRAYFOX_PATH . 'includes/class-grayfox-shortcode.php';
 require_once GRAYFOX_PATH . 'includes/class-grayfox-admin.php';
 require_once GRAYFOX_PATH . 'includes/class-grayfox-rest-api.php';
+require_once GRAYFOX_PATH . 'includes/class-grayfox-voice.php';
 require_once GRAYFOX_PATH . 'includes/class-grayfox-plugin.php';
 
 /* ------------------------------------------------------------------
