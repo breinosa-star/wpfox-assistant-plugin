@@ -4,7 +4,7 @@
  * Plugin URI:  https://plugins.grayfoxdc.com
  * Description: KBFox — AI-powered chatbot with RAG knowledge base for WordPress
  * Version:     1.0.0
- * Requires at least: 6.2
+ * Requires at least: 6.8
  * Requires PHP: 8.1
  * Author:      GrayFox
  * Author URI:  https://www.linkedin.com/in/boris-reinosa-925a48132

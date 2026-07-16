@@ -4,7 +4,7 @@
     "type": "wordpress-plugin",
     "require": {
         "smalot/pdfparser": "^2.0",
-        "woocommerce/action-scheduler": "^3.9"
+        "woocommerce/action-scheduler": "^4.0"
     },
     "config": {
         "optimize-autoloader": true,
